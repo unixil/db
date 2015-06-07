@@ -10,8 +10,8 @@ definition remains the same.
 1. A single tenant database
 This is a self-contained set of data files, control files, redo log files,
  parameter files, and so on, that include all of the Oracle metadata 
-(the definition of ALL_OBJECTS, for example), Oracle data, and Oracle code 
-(such as the code for DBMS_OUTPUT), in addition to all of the application 
+(the definition of ALL\_OBJECTS, for example), Oracle data, and Oracle code 
+(such as the code for DBMS\_OUTPUT), in addition to all of the application 
 metadata, data, and code. This is the only type of database in releases prior 
 to version 12c.
 2. A container or root database
@@ -34,9 +34,18 @@ container database it is currently plugged into.
 An instance is simply a set of operating system processes, or a single process
  with many threads, and some memory.
 ***** relationship of database and instance
-1. single tenant database and container database can only have one instance 
+1. a single tenant database and container database may be mounted and opened by
+ many instances
+2. one instance can only mount and open one tenant or container database at any
+point, and it's safe to say an instance will mount and open, at most, a single
+database in its entire lifetime.
+3. single tenant database and container database can only have one instance 
 working on it.
-2. one instance can work on many pluggable database
-3. ORAC allow one tenant database or container database to be managed by many 
+4. one instance can work on many pluggable database
+5. ORAC allow one tenant database or container database to be managed by many 
 instances
-4. one instance can only connect to one tenant or container database.
+**** The SGA and Background Processes
+     #+CAPTION: ORACLE DATABASE AND INSTANCE
+#+NAME: FIG 2-1
+[[./pic/oracle instance and database.png]]
+
