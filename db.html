@@ -4,7 +4,7 @@
 <html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en">
 <head>
 <title>db</title>
-<!-- 2015-06-07 Sun 09:02 -->
+<!-- 2015-06-07 Sun 10:43 -->
 <meta  http-equiv="Content-Type" content="text/html;charset=utf-8" />
 <meta  name="generator" content="Org-mode" />
 <meta  name="author" content="piepsilon" />
@@ -177,8 +177,8 @@ definition remains the same.
 <p>
 This is a self-contained set of data files, control files, redo log files,
  parameter files, and so on, that include all of the Oracle metadata 
-(the definition of ALL<sub>OBJECTS</sub>, for example), Oracle data, and Oracle code 
-(such as the code for DBMS<sub>OUTPUT</sub>), in addition to all of the application 
+(the definition of ALL\<sub>OBJECTS</sub>, for example), Oracle data, and Oracle code 
+(such as the code for DBMS\<sub>OUTPUT</sub>), in addition to all of the application 
 metadata, data, and code. This is the only type of database in releases prior 
 to version 12c.
 </p>
@@ -246,9 +246,8 @@ working on it.
 instances
 </p>
 </div>
-</li></ol>
 </li>
-<li><a id="sec-1-1-1-2" name="sec-1-1-1-2"></a>The SGA and Background Processes<br  /><div class="outline-text-5" id="text-1-1-1-2">
+<li><a id="sec-1-1-1-1-4" name="sec-1-1-1-1-4"></a>The SGA and Background Processes<br  /><div class="outline-text-6" id="text-1-1-1-1-4">
 
 <div id="FIG-2-1" class="figure">
 <p><img src="./pic/oracle instance and database.png" alt="oracle instance and database.png" />
@@ -257,13 +256,39 @@ instances
 </div>
 </div>
 </li></ol>
+</li>
+<li><a id="sec-1-1-1-2" name="sec-1-1-1-2"></a>Connecting to Oracle<br  /><div class="outline-text-5" id="text-1-1-1-2">
+<p>
+Two most common ways to have requests serviced by an Oracle server: 
+</p>
+<ol class="org-ol">
+<li>dedicated server;
+</li>
+<li>shared server connections.
+</li>
+</ol>
+</div>
+<ol class="org-ol"><li><a id="sec-1-1-1-2-1" name="sec-1-1-1-2-1"></a>Dedicated Server<br  /><div class="outline-text-6" id="text-1-1-1-2-1">
+<p>
+compared to shared server dedicated server have an extra process named 
+oracleora12c1
+</p>
+
+<div id="Fig-2-2" class="figure">
+<p><img src="./pic/typical dedicated server configuration.png" alt="typical dedicated server configuration.png" />
+</p>
+<p><span class="figure-number">Figure 2:</span> Typical dedicated server configuration</p>
+</div>
+</div>
+</li></ol>
+</li></ol>
 </div>
 </div>
 </div>
 </div>
 <div id="postamble" class="status">
 <p class="author">Author: piepsilon</p>
-<p class="date">Created: 2015-06-07 Sun 09:02</p>
+<p class="date">Created: 2015-06-07 Sun 10:43</p>
 <p class="creator"><a href="http://www.gnu.org/software/emacs/">Emacs</a> 24.5.1 (<a href="http://orgmode.org">Org</a> mode 8.2.10)</p>
 <p class="validation"><a href="http://validator.w3.org/check?uri=referer">Validate</a></p>
 </div>
