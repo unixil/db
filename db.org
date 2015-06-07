@@ -44,8 +44,31 @@ working on it.
 4. one instance can work on many pluggable database
 5. ORAC allow one tenant database or container database to be managed by many 
 instances
-**** The SGA and Background Processes
+***** The SGA and Background Processes
      #+CAPTION: ORACLE DATABASE AND INSTANCE
 #+NAME: FIG 2-1
 [[./pic/oracle instance and database.png]]
+**** Connecting to Oracle
+Two most common ways to have requests serviced by an Oracle server: 
+1. dedicated server;
+2. shared server connections.
+***** Dedicated Server
+compared to shared server dedicated server have an extra process named 
+oracleora12c1
+#+CAPTION: Typical dedicated server configuration
+#+NAME: FIG 2-2
+[[./pic/typical dedicated server configuration.png]]
+From fig 2-2 we can see the client connection directly connected to the 
+dedicated server
+***** Shared Server
+#+CAPTION: Steps in a shared server request
+#+NAME: FIG 2-3
+[[./pic/steps in a shared server request]]
+From fig 2-3 we can see that the client connection are connected to a Dispat-
+cher not directly connected to the database and the request are picked by disp-
+atcher and then sent into a request queue and then processed by shared server
+and the result is then sent back to dispatcher.
+***** Mechanics of Connecting over TCP/IP
+TNS: Transparent Network Subtrate
+
 
