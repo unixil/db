@@ -1,0 +1,51 @@
+* Database
+** Expert Oracle Database Architecture
+*** Architecture Overview
+**** Database and Instance
+***** Database 
+A collection of physical operating system files or disks. When using Oracle
+Automatic Storage Management (ASM) or RAW partitions, the database may not
+appear as individual, separate files in the operating system, but the 
+definition remains the same.
+1. A single tenant database
+This is a self-contained set of data files, control files, redo log files,
+ parameter files, and so on, that include all of the Oracle metadata 
+(the definition of ALL_OBJECTS, for example), Oracle data, and Oracle code 
+(such as the code for DBMS_OUTPUT), in addition to all of the application 
+metadata, data, and code. This is the only type of database in releases prior 
+to version 12c.
+2. A container or root database
+This is a self-contained set of data files, control files, redo log files, 
+parameter files, and so on, that only include the Oracle metadata, Oracle data,
+ and Oracle code. There are no application objects or code in these data 
+files—only Oracle-supplied metadata and Oracle-supplied code objects. This 
+database is self-contained in that it can be mounted and opened without any 
+other supporting physical structures.
+3. A pluggable database
+This is a set of data files only. It is not self-contained. A pluggable 
+database needs a container database to be “plugged into” to be opened and 
+accessible. These data files contain only metadata for application objects, 
+application data, and code for those applications. There is no Oracle metadata
+ or any Oracle code in these data files. There are no redo log files, control
+ files, parameter files, and so on—only data files associated with a pluggable 
+database. The pluggable database inherits these other types of files from the 
+container database it is currently plugged into.
+***** Instance
+An instance is simply a set of operating system processes, or a single process
+ with many threads, and some memory.
+***** relationship of database and instance
+1. a single tenant database and container database may be mounted and opened by
+ many instances
+2. one instance can only mount and open one tenant or container database at any
+point, and it's safe to say an instance will mount and open, at most, a single
+database in its entire lifetime.
+3. single tenant database and container database can only have one instance 
+working on it.
+4. one instance can work on many pluggable database
+5. ORAC allow one tenant database or container database to be managed by many 
+instances
+**** The SGA and Background Processes
+     #+CAPTION: ORACLE DATABASE AND INSTANCE
+#+NAME: FIG 2-1
+[[./pic/oracle instance and database.png]]
+

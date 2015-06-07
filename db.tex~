@@ -1,0 +1,101 @@
+% Created 2015-06-07 Sun 08:22
+\documentclass[11pt]{article}
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{fixltx2e}
+\usepackage{graphicx}
+\usepackage{longtable}
+\usepackage{float}
+\usepackage{wrapfig}
+\usepackage{rotating}
+\usepackage[normalem]{ulem}
+\usepackage{amsmath}
+\usepackage{textcomp}
+\usepackage{marvosym}
+\usepackage{wasysym}
+\usepackage{amssymb}
+\usepackage{hyperref}
+\tolerance=1000
+\author{piepsilon}
+\date{\today}
+\title{db}
+\hypersetup{
+  pdfkeywords={},
+  pdfsubject={},
+  pdfcreator={Emacs 24.5.1 (Org mode 8.2.10)}}
+\begin{document}
+
+\maketitle
+\tableofcontents
+
+\section{Database}
+\label{sec-1}
+\subsection{Expert Oracle Database Architecture}
+\label{sec-1-1}
+\subsubsection{Architecture Overview}
+\label{sec-1-1-1}
+\begin{enumerate}
+\item Database and Instance
+\label{sec-1-1-1-1}
+\begin{enumerate}
+\item Database
+\label{sec-1-1-1-1-1}
+A collection of physical operating system files or disks. When using Oracle
+Automatic Storage Management (ASM) or RAW partitions, the database may not
+appear as individual, separate files in the operating system, but the 
+definition remains the same.
+\begin{enumerate}
+\item A single tenant database
+\end{enumerate}
+This is a self-contained set of data files, control files, redo log files,
+ parameter files, and so on, that include all of the Oracle metadata 
+(the definition of ALL$_{\text{OBJECTS}}$, for example), Oracle data, and Oracle code 
+(such as the code for DBMS$_{\text{OUTPUT}}$), in addition to all of the application 
+metadata, data, and code. This is the only type of database in releases prior 
+to version 12c.
+\begin{enumerate}
+\item A container or root database
+\end{enumerate}
+This is a self-contained set of data files, control files, redo log files, 
+parameter files, and so on, that only include the Oracle metadata, Oracle data,
+ and Oracle code. There are no application objects or code in these data 
+files—only Oracle-supplied metadata and Oracle-supplied code objects. This 
+database is self-contained in that it can be mounted and opened without any 
+other supporting physical structures.
+\begin{enumerate}
+\item A pluggable database
+\end{enumerate}
+This is a set of data files only. It is not self-contained. A pluggable 
+database needs a container database to be “plugged into” to be opened and 
+accessible. These data files contain only metadata for application objects, 
+application data, and code for those applications. There is no Oracle metadata
+ or any Oracle code in these data files. There are no redo log files, control
+ files, parameter files, and so on—only data files associated with a pluggable 
+database. The pluggable database inherits these other types of files from the 
+container database it is currently plugged into.
+\item Instance
+\label{sec-1-1-1-1-2}
+An instance is simply a set of operating system processes, or a single process
+ with many threads, and some memory.
+\item relationship of database and instance
+\label{sec-1-1-1-1-3}
+\begin{enumerate}
+\item a single tenant database and container database may be mounted and opened by
+many instances
+\item single tenant database and container database can only have one instance
+\end{enumerate}
+working on it.
+\begin{enumerate}
+\item one instance can work on many pluggable database
+\item ORAC allow one tenant database or container database to be managed by many
+\end{enumerate}
+instances
+\begin{enumerate}
+\item one instance can only mount and open one tenant or container database at any
+\end{enumerate}
+point, and it's safe to say an instance will mount and open, at most, a single
+database in its entire lifetime.
+\end{enumerate}
+\end{enumerate}
+% Emacs 24.5.1 (Org mode 8.2.10)
+\end{document}
