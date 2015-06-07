@@ -1,0 +1,271 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN"
+"http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en">
+<head>
+<title>db</title>
+<!-- 2015-06-07 Sun 09:02 -->
+<meta  http-equiv="Content-Type" content="text/html;charset=utf-8" />
+<meta  name="generator" content="Org-mode" />
+<meta  name="author" content="piepsilon" />
+<style type="text/css">
+ <!--/*--><![CDATA[/*><!--*/
+  .title  { text-align: center; }
+  .todo   { font-family: monospace; color: red; }
+  .done   { color: green; }
+  .tag    { background-color: #eee; font-family: monospace;
+            padding: 2px; font-size: 80%; font-weight: normal; }
+  .timestamp { color: #bebebe; }
+  .timestamp-kwd { color: #5f9ea0; }
+  .right  { margin-left: auto; margin-right: 0px;  text-align: right; }
+  .left   { margin-left: 0px;  margin-right: auto; text-align: left; }
+  .center { margin-left: auto; margin-right: auto; text-align: center; }
+  .underline { text-decoration: underline; }
+  #postamble p, #preamble p { font-size: 90%; margin: .2em; }
+  p.verse { margin-left: 3%; }
+  pre {
+    border: 1px solid #ccc;
+    box-shadow: 3px 3px 3px #eee;
+    padding: 8pt;
+    font-family: monospace;
+    overflow: auto;
+    margin: 1.2em;
+  }
+  pre.src {
+    position: relative;
+    overflow: visible;
+    padding-top: 1.2em;
+  }
+  pre.src:before {
+    display: none;
+    position: absolute;
+    background-color: white;
+    top: -10px;
+    right: 10px;
+    padding: 3px;
+    border: 1px solid black;
+  }
+  pre.src:hover:before { display: inline;}
+  pre.src-sh:before    { content: 'sh'; }
+  pre.src-bash:before  { content: 'sh'; }
+  pre.src-emacs-lisp:before { content: 'Emacs Lisp'; }
+  pre.src-R:before     { content: 'R'; }
+  pre.src-perl:before  { content: 'Perl'; }
+  pre.src-java:before  { content: 'Java'; }
+  pre.src-sql:before   { content: 'SQL'; }
+
+  table { border-collapse:collapse; }
+  caption.t-above { caption-side: top; }
+  caption.t-bottom { caption-side: bottom; }
+  td, th { vertical-align:top;  }
+  th.right  { text-align: center;  }
+  th.left   { text-align: center;   }
+  th.center { text-align: center; }
+  td.right  { text-align: right;  }
+  td.left   { text-align: left;   }
+  td.center { text-align: center; }
+  dt { font-weight: bold; }
+  .footpara:nth-child(2) { display: inline; }
+  .footpara { display: block; }
+  .footdef  { margin-bottom: 1em; }
+  .figure { padding: 1em; }
+  .figure p { text-align: center; }
+  .inlinetask {
+    padding: 10px;
+    border: 2px solid gray;
+    margin: 10px;
+    background: #ffffcc;
+  }
+  #org-div-home-and-up
+   { text-align: right; font-size: 70%; white-space: nowrap; }
+  textarea { overflow-x: auto; }
+  .linenr { font-size: smaller }
+  .code-highlighted { background-color: #ffff00; }
+  .org-info-js_info-navigation { border-style: none; }
+  #org-info-js_console-label
+    { font-size: 10px; font-weight: bold; white-space: nowrap; }
+  .org-info-js_search-highlight
+    { background-color: #ffff00; color: #000000; font-weight: bold; }
+  /*]]>*/-->
+</style>
+<script type="text/javascript">
+/*
+@licstart  The following is the entire license notice for the
+JavaScript code in this tag.
+
+Copyright (C) 2012-2013 Free Software Foundation, Inc.
+
+The JavaScript code in this tag is free software: you can
+redistribute it and/or modify it under the terms of the GNU
+General Public License (GNU GPL) as published by the Free Software
+Foundation, either version 3 of the License, or (at your option)
+any later version.  The code is distributed WITHOUT ANY WARRANTY;
+without even the implied warranty of MERCHANTABILITY or FITNESS
+FOR A PARTICULAR PURPOSE.  See the GNU GPL for more details.
+
+As additional permission under GNU GPL version 3 section 7, you
+may distribute non-source (e.g., minimized or compacted) forms of
+that code without the copy of the GNU GPL normally required by
+section 4, provided you include this license notice and a URL
+through which recipients can access the Corresponding Source.
+
+
+@licend  The above is the entire license notice
+for the JavaScript code in this tag.
+*/
+<!--/*--><![CDATA[/*><!--*/
+ function CodeHighlightOn(elem, id)
+ {
+   var target = document.getElementById(id);
+   if(null != target) {
+     elem.cacheClassElem = elem.className;
+     elem.cacheClassTarget = target.className;
+     target.className = "code-highlighted";
+     elem.className   = "code-highlighted";
+   }
+ }
+ function CodeHighlightOff(elem, id)
+ {
+   var target = document.getElementById(id);
+   if(elem.cacheClassElem)
+     elem.className = elem.cacheClassElem;
+   if(elem.cacheClassTarget)
+     target.className = elem.cacheClassTarget;
+ }
+/*]]>*///-->
+</script>
+</head>
+<body>
+<div id="content">
+<h1 class="title">db</h1>
+<div id="table-of-contents">
+<h2>Table of Contents</h2>
+<div id="text-table-of-contents">
+<ul>
+<li><a href="#sec-1">1. Database</a>
+<ul>
+<li><a href="#sec-1-1">1.1. Expert Oracle Database Architecture</a>
+<ul>
+<li><a href="#sec-1-1-1">1.1.1. Architecture Overview</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</div>
+</div>
+<div id="outline-container-sec-1" class="outline-2">
+<h2 id="sec-1"><span class="section-number-2">1</span> Database</h2>
+<div class="outline-text-2" id="text-1">
+</div><div id="outline-container-sec-1-1" class="outline-3">
+<h3 id="sec-1-1"><span class="section-number-3">1.1</span> Expert Oracle Database Architecture</h3>
+<div class="outline-text-3" id="text-1-1">
+</div><div id="outline-container-sec-1-1-1" class="outline-4">
+<h4 id="sec-1-1-1"><span class="section-number-4">1.1.1</span> Architecture Overview</h4>
+<div class="outline-text-4" id="text-1-1-1">
+</div><ol class="org-ol"><li><a id="sec-1-1-1-1" name="sec-1-1-1-1"></a>Database and Instance<br  /><ol class="org-ol"><li><a id="sec-1-1-1-1-1" name="sec-1-1-1-1-1"></a>Database<br  /><div class="outline-text-6" id="text-1-1-1-1-1">
+<p>
+A collection of physical operating system files or disks. When using Oracle
+Automatic Storage Management (ASM) or RAW partitions, the database may not
+appear as individual, separate files in the operating system, but the 
+definition remains the same.
+</p>
+<ol class="org-ol">
+<li>A single tenant database
+</li>
+</ol>
+<p>
+This is a self-contained set of data files, control files, redo log files,
+ parameter files, and so on, that include all of the Oracle metadata 
+(the definition of ALL<sub>OBJECTS</sub>, for example), Oracle data, and Oracle code 
+(such as the code for DBMS<sub>OUTPUT</sub>), in addition to all of the application 
+metadata, data, and code. This is the only type of database in releases prior 
+to version 12c.
+</p>
+<ol class="org-ol">
+<li>A container or root database
+</li>
+</ol>
+<p>
+This is a self-contained set of data files, control files, redo log files, 
+parameter files, and so on, that only include the Oracle metadata, Oracle data,
+ and Oracle code. There are no application objects or code in these data 
+files—only Oracle-supplied metadata and Oracle-supplied code objects. This 
+database is self-contained in that it can be mounted and opened without any 
+other supporting physical structures.
+</p>
+<ol class="org-ol">
+<li>A pluggable database
+</li>
+</ol>
+<p>
+This is a set of data files only. It is not self-contained. A pluggable 
+database needs a container database to be “plugged into” to be opened and 
+accessible. These data files contain only metadata for application objects, 
+application data, and code for those applications. There is no Oracle metadata
+ or any Oracle code in these data files. There are no redo log files, control
+ files, parameter files, and so on—only data files associated with a pluggable 
+database. The pluggable database inherits these other types of files from the 
+container database it is currently plugged into.
+</p>
+</div>
+</li>
+<li><a id="sec-1-1-1-1-2" name="sec-1-1-1-1-2"></a>Instance<br  /><div class="outline-text-6" id="text-1-1-1-1-2">
+<p>
+An instance is simply a set of operating system processes, or a single process
+ with many threads, and some memory.
+</p>
+</div>
+</li>
+<li><a id="sec-1-1-1-1-3" name="sec-1-1-1-1-3"></a>relationship of database and instance<br  /><div class="outline-text-6" id="text-1-1-1-1-3">
+<ol class="org-ol">
+<li>a single tenant database and container database may be mounted and opened by
+many instances
+</li>
+<li>one instance can only mount and open one tenant or container database at any
+</li>
+</ol>
+<p>
+point, and it's safe to say an instance will mount and open, at most, a single
+database in its entire lifetime.
+</p>
+<ol class="org-ol">
+<li>single tenant database and container database can only have one instance 
+</li>
+</ol>
+<p>
+working on it.
+</p>
+<ol class="org-ol">
+<li>one instance can work on many pluggable database
+</li>
+<li>ORAC allow one tenant database or container database to be managed by many 
+</li>
+</ol>
+<p>
+instances
+</p>
+</div>
+</li></ol>
+</li>
+<li><a id="sec-1-1-1-2" name="sec-1-1-1-2"></a>The SGA and Background Processes<br  /><div class="outline-text-5" id="text-1-1-1-2">
+
+<div id="FIG-2-1" class="figure">
+<p><img src="./pic/oracle instance and database.png" alt="oracle instance and database.png" />
+</p>
+<p><span class="figure-number">Figure 1:</span> ORACLE DATABASE AND INSTANCE</p>
+</div>
+</div>
+</li></ol>
+</div>
+</div>
+</div>
+</div>
+<div id="postamble" class="status">
+<p class="author">Author: piepsilon</p>
+<p class="date">Created: 2015-06-07 Sun 09:02</p>
+<p class="creator"><a href="http://www.gnu.org/software/emacs/">Emacs</a> 24.5.1 (<a href="http://orgmode.org">Org</a> mode 8.2.10)</p>
+<p class="validation"><a href="http://validator.w3.org/check?uri=referer">Validate</a></p>
+</div>
+</body>
+</html>
