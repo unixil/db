@@ -1,0 +1,179 @@
+* Installing the oracle binaries
+** Understanding the OFA
+OFA: Optimal Flexible architecture
+#+CAPTION: Optimal flexible architecture
+#+NAME: FIG1-1
+[[./pic/directory of database.png]]
+
+*** Oracle Inventory Directory
+The Oracle inventory directory stores the inventory of Oracle software installed on the server.When you first install oracle, the installer checks where there is an existing OFA compliant directory structure in the format /u[01-09/app, if such a directory exist then installer creats a directory such as
+/u01/app/oraInventory
+If the $oracle\_base varible is defined for oracle system user, then the installer creates a directory of the location of the oracle inventory as follows:
+$oracle\_base/../oraInventory
+If the installer doesn't find a recognizable OFA-compliant directory or $oracle\_base varible,then the location for oracle Inventory is created under the HOME directory of the oracle user. For instance, if the HOME directory is /home/oracle, then the location of the Oracle Inventory is
+/home/oracle/oraInventory
+*** Oracle Base Directory
+The oracle base directory is the topmost directory of oracle software installation. You can install one or more versions of software beneath this directory. The OFA standard for the oracle base directory is as follows:
+/<mount-point>/app/<software owner>
+Typical names for mount-point name include /u01, /ora01, /oracle and /oracle01. You can name the mount point according to what ever your standard is for your enviroment.
+The software owner is typically named oracle. This is the user you use to install the Oracle software(binaries)
+*** Oracle Home Directory
+<ORACLE\_BASE>/product/<version>/<install_name>
+<install\_name> include db\_1, devdb1, test2...
+If you don't want to have a test database installed on the same machine, you can safely drop the <install\_name>.
+*** Oracle Network Files Directory
+/ORACLE\_HOME/network/admin
+usually the tnsname.ora and listener.ora files are included in the directory
+*** Automatic Diagnostic Repository
+ORACLE\_BASE/diag/rdbms/lower(db\_unique\_name)/instance\_name
+** Installing Oracle
+*** Creating the OS Groups and Users
+--------------------------------------------------------------------------------
+OS Group  |Database System Previlege  | Authorized Operations | Where referenced
+--------------------------------------------------------------------------------
+......
+sudo groupadd <group-name>
+sudo useradd -g <group-name> -G <group-name>,<group-name> <username>
+*** Ensure the OS is adequatly configured
++ memory and swap space
++ system architecture
++ free space disk
++ operating system and version
++ operating system software
+*** Obtain the Oracle database software 
+*** unzip the software
+*** Creating oraInst.loc File
+
+** /!!!!my installation!!!!/
+the procedure of the installation is added to bookmarks in google-chrome, you can reference to it and centOS will be a OS more suitable to OS installation.
+** Implimenting a Database
+There are two ways to create a database: one is using dbca the other is run "create database" from SQL*Plus
+*** Setting OS varibles
+1. ORACLE_HOME
+2. ORACLE_SSID
+3. LD_LIBRARY_PATH
+4. PATH
+ORACLE_HOME defines where the initial file is and where the executable binary file is, in linux, they are $ORACLE_HOME/dbs and $ORACLE_HOME/bin.
+**** A Manually Intensive Approach
+export ORACLE_HOME="/home/wafflepie/oracle/app/wafflepie/product/12.1.0/dbhome_1"
+export PATH="$ORACLE_HOME/bin:$PATH"
+export LD_LIBRARY_PATH="/usr/lib:$ORACLE_HOME/lib/"
+export ORACLE_SID="o12c"
+For now, the new install oracle has no ORACLE_SID, I think it's because i choose to install the software only without choosing to install a database.
+**** Oracle's Approach to Setting OS Varibles
+This approach relies on two files: oratab & oraenv
+***** Understanding oratab
+The oratab file are located in /etc in linux system, it is used by oraenv to set system varibles and used by program like dbstart, dbshut to start or shut database when system reboots.
+oraenv, dbstart and dbshut are all located in $ORACLE_HOME/bin folder.
+***** Using oraenv
+The oraenv set OS varibles by inspecting oratab file, it can be executed silently and it can be written into .bashrc, so everytime the system boots, it will be executed.
+NOTICE: To run oraenv in commandline, you need to place a blank(' ') instead a slash('/') between dot and oraenv, eg:". oraenv".
+**** My Approach to Setting OS Varibles
+A oraset script is given in the book, I think I will not need to use it because I only need to administrate one database.You may find it in page 34.
+** Creating a Database
+1. Set OS variables
+2. Configure the initialization file
+3. Create the required directory
+4. Create the database
+5. Create a dataase directory
+*** Step1: Set OS varibles
+As previous mentioned
+*** Step2: Configure the Initialization File
+Two types of configuration file:
+1. Server parameter binary file(spfile)
+2. init.ora text file
+
+Oracle recomand to use spfile, because it is easy to change in oracle sqlplus and you can use remote-client SQL session to start the database without requiring a local initialization file.
+Using init.ora text file also has advantages, you can modify it using OS editor and you can comment in the file for historic reference, besides if you have to use spfile, you can generate one from init.ora using create SPFILE from PFILE statement.
+The spfile and init.ora file are located in $ORACLE_HOME/dbs folder.
+The most important thing about the initialization file should be the default order the oracle look for:
+spfile<SID>.ora
+spfile.ora
+init<SID>.ora
+*** Step3: Create the Required Directory
+Create control file directory and redo file directory. The place is arbitrary like /u01/dbfile/o12c/,/u01/oraredo/o12c.
+The control file looks like control01.ctl. It ends up with ctl.
+*** Step4: Create the Database
+The credb.sql file is an example to create database.
+From the script the following file are created:
+1. DATAFILE 500M
+2. UNDOTABLESPACE THIS IS LARGER THAN DATAFILE
+3. SYSAUX DATAFILE SAME AS DATAFILE
+4. TEMPORARY FILE SAME AS DATAFILE
+5. USER DATAFILE 20M
+6. LOGFILE 3GROUP REDO LOGFILE TOTAL 150M
+
+NOTICE:In the credb.sql, the system file has a description about the extend management, it is specified as LOCAL, this means tablespaces you created must be managed locally not dictionary-managed. If you try to create a dictionary-managed tablespace, oracle will throw out an error.
+*** Step5: Create a Data Dictionary
+run catalog.sql and catproc.sql in $ORACLE_HOME/rdbms/admin directory. Before this you can spool out a file to check if something unexpected happened before.
+
+** Configuring and Implementing Listener
+*** Manually Configuring a Listener
+The configure file is located in $ORACLE_HOME/network/admin directory
+<LISTENERNAME>=
+(
+    DISCRIPTION_LIST=
+    (
+	DISCRIPTION=
+	(
+	    ADDRESS_LIST=
+	    (
+	        ADDRESS=
+		(
+		    (PROTOCOL=<TCP>)(HOST=<HOST_NAME>)(PORT=<1521>)
+	        )
+	    )
+	)
+    )
+)
+dynamic registration
+do not specify the SID_LIST_<LISTENERNAME> in the tns.ora file
+static registration
+specify the SID_LIST_<LISTENERNAME> in the tns.ora file
+SID_LIST_LISTENER
+(
+    SID_LIST=
+    (
+        SID_DESC=
+	(
+	    (GLOBAL_DBNAME=<o12c>)
+	    (ORACLE_HOME=<$ORACLE_HOME>)
+	    (SID_NAME=<o12c>)
+	)
+    )
+
+)
+after you finish the listener configuration file, you can start the listener by run command 'lsnrctl start'.
+*** Using Net Configuration Assistant
+Run 'netca'
+You can use netca.rsp file for a silent run.
+netca -silent - responsefile <path/to/netca.rsp>
+***  Connecting a Database through the network
+direct connect to the remote database without settings
+sql user/pass@'server:port/service_name'
+You need username,password, server ip, port number and service_name(SID).
+Also you can use local naming method to connect, this relies on $ORACLE_HOME/network/admin/tnsname.ora file. Typically the file looks like this:
+<SERVICE_NAME>=
+(
+    DESCRIPTION=
+    ( 
+        ADDRESS=(PROTOCOL=<TCP>)(HOST=<HOSTNAME>)(PORT=<1521>)
+	CONNECT_DATA=(SERVICE_NAME=<SERVICE_NAME>)
+    )
+)
+After setting the file, you can connect to the server by running 'sqlplus system/foo@<SERVICE_NAME>'. This method requires you have a local tnsname.ora file.
+*** Creating a Passwork File
+1. use orapwd utility to generate a password file
+
+In linux environment:
++ cd $ORACLE_HOME/dbs
++ orapwd file=orapw<ORACLE_SID> password=<SYS password>
+2. set the initialization parameter REMOTE_LOGIN_PASSWORD to EXCLUSIVE
++ alter system set remote_login_passwordfile='EXCLUSIVE' scope=spfile;
+You need to restart the instance to make previous changes take effects. You can add user to passwd file by grant command:
++ grand sysdba to someuser;
+When you add someuser to the passwd file, the user can connect to the server as sys*
++ sqlplus <database connection string> as sys*
+
+
+
