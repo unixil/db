@@ -194,5 +194,111 @@ The start up scheme can be described by the following picture:
 [[./pic/startupscheme.png]]
 #+CAPTION:Phases of Oracle startup
 #+NAME:FIG2-2:Phases of Oracle startup
+*** Stopping Database
+shutdown [parameters]
+parameters:
+NORMAL
+TRANSITIONAL LOCAL
+TRANSITIONAL
+IMMEDIATE
+ABORT
+*** DATABASE AND INSTANCE
+After 'alter database close ', you can not 'alter database open'
+successfully, because a instance can only associate with one database
+for its whole life.
+*** Using dbca to create database
+graphical mode 
+silent mode:
+1.. locate dhcp.rsp file
+2. make a copy of dhcp.rsp file
+3. modify the copy of dhcp.rsp file for your enviroment
+4. run dbca utility in silent mode: dbca -silent -responseFile
+/path/to/resopnsefile.
+*** Dropping database
+SQL> shutdown immediate;
+SQL> start mount exclusive restrict;
+SQL> drop database;
+drop database command doesn't remove old archieve redo log files. You
+must remove them manully or use RMAN to remove old archive and redo
+logs.
+** How many databases on a server
+**** one server per database
+#+CAPTION: one server per database
+#+NAME: Fig2-3
+[[./pic/one server per database.png]]
+**** multiple databases sharing one set of oracle binaries on one
+server
 
+#+CAPTION: multi database share one set of oracle binaries on a server.png
+#+NAME: Fig2-4
+[[./pic/multi database share one set of oracle binaries on a server.png]]
+
+If you need different versions of oracle database you need to have
+multiple ORACLE HOME to house those installations.
+**** one database used by multiple apps and many users
+#+CAPTION: one database used by multiple applications and users
+#+NAME: Fig2-5
+[[./pic/one database used by multiple apps and users.png]]
+
+If you don't have enough computational resources to have multiple
+databases on one server, you can try using one database to host
+multiple applications
+**** one container database with multiple pluggable databases
+#+CAPTION:
+#+NAME: Fig2-6
+[[./pic/one container database with multiple pluggable databases.png]]
+
+In oracle 12c you have this option to have pluggable databases in one
+container database.
+** Understanding Oracle Architecture
+#+CAPTION: Oracle database architecture
+#+NAME: Fig2-7
+[[./pic/oracle database architecture.png]]
+
+* TABLESPACES AND DATA FILES
+Tablespace is not just a space of tables, it is a logical container that
+allows you to manage groups of data files, the physical files on disks
+that consume space. Once a table space is created you can then create
+databases objects within table spaces, which results in space
+allocated on disks in the associated data files.
+Tablespace is logical, it only exists when database is up and running.
+Data files are physical existences, they persists wheather database is
+open or closed.
+database contain several tablespaces, one tablespaces contain many
+tables, one table can belong to only one tablespace.
+Objects are owner by creaters and created within tablespaces. A object
+is instanciated as a segment. A segment consists extents of space
+within tablespace. A extent consists of a set of database blocks.
+[[./pic/relationship of logical storage objects and physical objects.png]]
+** Understanding the first five
+SYSTEM:should be owned by sys role only when database is created
+
+SYSAUX:used for oracle tools usage
+
+TMP :  if memory is not enough or need a temparay place to storge data
+
+UNDO:  used for undo operation or instance crash or flashback
+things like that.
+
+USERS: not necessary, but often used as a permanent tablespace for
+user.
+** Table Operation
+*** Creating tablespaces
+command: create tablespace
+
+parameter: usually you need only two parameters, besides datafile path
+and size, which are locally managed extent allocation and automatic
+segment space management.
+
+eg: create tablespace tools
+
+datafile /u01/dbfile/o12c/tools01.dbf
+
+size 100M
+
+extent management local
+
+uniform size 128k
+
+segment space management auto;
 
