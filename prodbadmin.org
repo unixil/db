@@ -313,3 +313,183 @@ and database file
 If you set these parameters before the database is set, the database
 will use these parameters for redo log, data files and control files.
 
+
+
+* DATA PUMP
+** DATA PUMP ARCHITECTURE
+- process
+  - master process: ora_dwNN_<SID>
+  - work process:
+  - status table created: SYS_<OPERATION>_<JOB_MODE>_NN
+    - operation: export | import
+    - job_mode: full|schema|table|tablespace|transportable
+      - job table dropped when job terminated
+      - job table retained if job terminated abnormally and restore when job restarted.
+- dp directory
+  - default directory defined in directory object named DATA_PUMP_DIR
+- LOG DIRECTORY
+  - default: $ORACLE_HOME/rdbms/log
+#+CAPTION: export architecture
+#+NAME: figure-13.1
+[[./pic/exp_architecture.png]]
+#+CAPTION: import architecture
+#+NAME: figure-13.2
+[[./pic/imp_architecture.png]]
+** get started
+- do NOT use default directory for dp_directory
+  - it will make $ORACLE_HOME directory very large
+*** process
+**** manually
+- create default dp_directory
+- grant authorization to user
+- run expdp
+  - if dumpfile already exists then oracle will throw an error.
+**** use parameter file
+- parameter file: exp.par
+- run expdp exp.par
+
+*** mode
+**** Exporting and Importing the whole database
+- priviledge: DBA or DATAPUMP_EXP_FULL_DATABASE role granted
+- priviledge: DBA or DATAPUMP_IMP_FULL_DATABASE role granted
+- parameter: full=Y
+***** export CAUTIONS
+- SYS scheme are never exported by datapump
+- index are not exported but DDL that contains the SQL required to recreate index are exported
+
+***** import CAUTIONS
+- import will try to create tablespace and directory or dfatafiles, if any has exists then import will fail.
+- if any user has already, import will fail to recreate the user, it will move on to the next task
+- import will make sys and system user has the same password with the original database, so you'd better to change the password of SYS and SYSTEM account to distinguish the new database from the original one
+- not only SYS and SYSTEM user, other user will have the same password with the original ones, so maybe it's better to change the password
+- after each table is created, index table will be created
+- table will be recreated if the same table already exist and contain data, you can specify the method to deal with the problem that the object already exists.
+**** scheme level
+- this is the default level
+- you can import scheme from dmp file that obtained from full export
+**** table level
+- tell impdp or expdp which table you want to operates
+- you can import table from dmp file that obtained from full or schema export
+**** teblespace level
+- specifiy the tablespace name while expdp or impdp
+***** tablespace CAUTION
+- it does NOT try to recreate tablespace themselves.
+*** Transferring DATA
+- network
+- copying data files
+- external tables
+**** network method
+**** copying data files method
+- create corresponding user on dest database
+create user &&username identified by &&user_pwd;
+grant connect,resource to &&user;
+alter user &&user default tablespace &&tablespace_name;
+- create database linke to remote source database and connect to the source database with a dba user
+create database link &&linkname
+connect to &&sourcename identified by &&username
+- CAUTIONS
+the network link created here is very important
+using 'xx:1522/xxxx';
+- create a log directory in dest database
+create or replace directory &&directory_name as '&&path/to/log'
+- import database
+*** Features for Manipulating Stroage
+**** Exporting Tablespace Metadata
+- sometimes you need to build an environment without data, you can use the metadata to build the environment
+  - e.g.:expdp mv_maint/foo directory=dp_dir dumpfile=inv.dmp full=y include=tablespace
+  - then you can import the DDL data into sql file, so you can modify the DDL file according to your needs or just execute it
+    - e.g.:impdp mv_maint/foo directory=dp_dir dumpfile=inv.dmp sqlfile=tbsp.sql
+**** Specifying Different Data File Paths and Names
+- use REMAP_DATAFILE parameter
+  - remap_datafile="'<source_file_path_and_name>':'<dest_file_path_and_name>'"
+**** Importing into a Tablespace Different from the Original
+- keyword: remap_schema, remap_tablespace
+  - remap_schema
+    - usage:remap_schema=<source_schema_name>:<dest_schema_name>
+  - remap_tablespace
+    - usage: remap=<source_tablespace_name>:<dest_tablespace_name>
+**** Change the Size of Data Files
+- keyword
+  - transform
+    - usage: transform=pctspace:<number of percentage>
+**** Change Segment and Storage Attributs
+- keyword: TRANSFORM
+*** Filtering Data and Objects
+- keyword: QUERY, SAMPLE, CONTENT, EXCLUDE, INCLUDE
+**** Specifying a Query
+- keyword: QUERY
+  - usage: QUERY=[schema.][table_name:] query_clause
+**** Exporting a Percentage of the Data
+- keyword: SAMPLE
+  - usage: [[schema_name.]table_name:]sample_percent
+  - e.g.:expde mv_maint/foo directory=dp_dir tables=inv sample=10 dumpfile=inv.dmp
+  - e.g.:expdp mv_maint/foo directory=dp_dir tables=inv,reg sample=reg:30 dumpfile=inv.dmp
+- CAUTIONS
+The SAMPLE parameter is only valid for exports
+**** Excluding Objects from the Export File
+- keyword: EXCLUDE
+  - usage: EXCLUDE = object_type[:name_clause][,...]
+  - you can NOT exclude a include object, for example, you can't exclude schema when export in schema mode
+***** Excluding Statistics
+- keyword: EXCLUDE=STATISTICS
+**** Including Only Specific Objects in an Export File
+- keyword: INCLUDE
+  - e.g.: INCLUDE=procedure,function
+  - e.g.: INCLUDE=function:\"=\'IS_DATE\'\"
+**** Exporting Table, Index, Constraint, and Trigger DDL
+- e.g:expdp mv_maint/foo directory=dp_dir dumpfile=ddl.dmp content=metadata_only full=y include=table
+**** Excluding Objects from Import
+- e.g.:exclude=trigger:"like 'B%'"
+  - ??: why there is no backslash for single quote symbol
+**** Including Objects from Import
+- e.g.:include=table:"like 'A%'"
+*** Common Data Pump Tasks
+**** Estimating the Size of Export Jobs
+- keyword: estimate_only
+  - usage: estimate_only=y
+**** Listing the Contents of Dump Files
+**** Cloning a User
+**** Creating a Consistent Export
+**** Importing When Objects Already Exist
+**** Renaming a Table
+**** Remapping Data
+**** Suppressing a Log File
+**** Using Parallelism
+**** Specifying Additional Dump File
+**** Reusing Output File Names
+**** Creating a Daily DDL File
+**** Compressing Output
+**** Changing Table Compression Characteristics on Import
+**** Encrypt Data
+**** Exporting Views As Tables
+**** Disabling Logging of Redo on Import
+*** Interactive Command Mode
+**** Entering Interactive Command Mode
+***** Ctrl+C
+***** ATTACH
+- determine the job name
+  - select owner, operation,job_name,state from dba_datapump_jobs
+- attach the job you want to attach
+  - if you are the job owner: expdp mv_maint/foo attach=<job_name>
+  - if you are not the owner: expdp system/foobar attach=<job_owner>.<job_name>
+**** Stopping and Restarting a Job
+sometimes you want to stop a job temporarily and solve some problems and then continue the job
+- attach a job
+  - e.g.: impdp mv_maint/foo attach=sys_import_table_01
+- stop a job
+  - e.g.: stop_job
+  - e.g.: stop_job=immediate
+- start a job
+  - start_job
+**** Terminating a Data Pump Job
+- attach to the job in interactive mode
+- run kill_job command
+*** Monitoring Data Pump Jobs
+**** Data Pump Log File
+**** Data Dictionary Views
+**** Database Alert Log
+**** Status Table
+**** Interactive Command Mode Status
+**** OS Utilities
+*** Data Pump Legacy Mode
+*** Summary
