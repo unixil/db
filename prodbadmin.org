@@ -255,6 +255,7 @@ container database.
 #+NAME: Fig2-7
 [[./pic/oracle database architecture.png]]
 
+
 * TABLESPACES AND DATA FILES
 Tablespace is not just a space of tables, it is a logical container that
 allows you to manage groups of data files, the physical files on disks
@@ -493,3 +494,150 @@ sometimes you want to stop a job temporarily and solve some problems and then co
 **** OS Utilities
 *** Data Pump Legacy Mode
 *** Summary
+
+
+* USER MANAGED BACKUP AND RECOVERY
+- type
+  - cold backup: offline backup: database offline while making backup
+  - hot backup: online backup: database online while making backup
+- keys:
+  - which files are backup
+  - how they are using when back up
+** Implementing a Cold-backup Strategy for Nonarchivelog Mode Database
+- steps:
+  - determine where to copy the backup files and how much space is required
+  - Identify the locations and names of the database files to copy
+  - shutdown the database with the IMMEDIATE, TRANSCTIONAL or NORMAL clause
+  - copy the files to the backup location
+  - restart the database
+- STEP 1:
+select sum(sum_bytes)/1024/1024 m_bytes
+from(
+select sum(bytes) sum_bytes from v$datafile
+union
+select sum(bytes) sum_bytes from v$tempfile
+union
+select (sum(bytes) * members) sum_bytes from v$log
+group by members
+);
+
+compare the query results with 
+
+`df -h`
+
+- STEP 2:
+select name from v$datafile
+union
+select name from v$controlfile
+union
+select name from v$tempfile
+union
+select member from v$logfile;
+
+- STEP 3: Shut Down the Database
+shutdown immediate;
+
+- STEP 4: Create Backup Copies of the Files
+cp <database file path in step2> <backup path>
+
+- STEP 5: Restart Your Database
+startup;
+
+*** Restore a cold backup in Nonarchivelog Mode with Online Redo Logs
+- steps:
+  - Shutdown the Instance
+  - Copy the File from the Backup
+  - Start Up the database
+**** STEP1: Shutdown the Instance
+shutdown abort;
+**** STEP2: Copy the File from the Backup
+cp <backup path> <database file path>
+**** STEP3: Start Up the database
+startup;
+*** Restore a cold backup in Nonarchivelog Mode without Online Redo Logs
+- steps:
+  - Shutdown the Instance
+  - Copy the File from the Backup
+  - Start Up the database in mount mode
+  - Open the Database with OPEN RESETLOGS clause
+**** Step1: Shutdown the Instance
+- shutdown abort;
+**** Step2: Copy the Files from the Backup
+- cp <database file path> <dest path>
+**** Step3: Start Up the database in mount mode
+- startup mount;
+**** Step4: Open the Database with OPEN RESETLOGS clause
+- alter database open resetlogs;
+if you see ORA-01139: run the following command:
+- recover database until cancel;
+
+** Implementing a Cold-backup Strategy for Archivelog Mode Database
+- you don't need to backup tempfile 
+- you do NOT backup current redo log file
+** Difference between Cold-Backup a Nonarchivelog Mode and an Archivelog Mode Database
+- purpose:
+the purpose for cold backup for a archivelog is to make a full recovery for the current database, so you will NOT backup the current online redo log, because you don't want to rewrite the current online redo logs with a old version of online redo log, which makes you never able to recover the database
+- content:
+do NOT back up the current redo log file in archive mode database backup procedure
+** Implementing Hot Backup Strategy
+best practice: Do a hot backup and then use the backup file to restore and recover the database
+*** Making a Hot Backup
+- steps:
+  - Ensure that the database is in a archivelog mode
+  - Determine where to copy the backup file
+  - Identify which files need to be backed up
+  - Note the Maximum sequence number of online redo logs
+  - alter the database/tablespace into backup mode
+  - copy the datafile with an OS utility to the location determined in step 2
+  - alter the database/tablespace out of backup mode
+  - Archive the current online redo log, and the maximum sequence number of the online redo logs
+  - back up the control files
+  - back up any archive redo logs generated during the backup
+
+**** Ensure that the database is in a archivelog mode
+- archive log list;
+if the database is not in archivelog mode, you should change it into archive mode by shutting down the database first and then startup in mount mode but not open the database, then you change the database into archivelog mode and then alter the database open
+- shutdown normal;
+- startup mount;
+- alter database archivelog;
+- alter database open;
+**** Determine where to copy the backup file
+- select sum(bytes) from <dba_data_files>;
+**** Identify which files need to be backed up
+- select name from v$datafile;
+you may want to know the relationship between tablespace name and database file
+- select tablespace, filename from <dba_data_files> order by 1,2;
+**** Note the Maximum sequence number of online redo logs
+- select thread#, max(sequence#) from v$log group by thread# order by thread#;
+**** alter the database/tablespace into backup mode
+- alter database begin backup;
+or if you want to backup tablespace
+- alter tablespace <tablespace_name> begin backup;
+**** copy the datafile with an OS utility to the location determined in step 2
+cp <database file path> <dest_file_path>
+**** alter the database/tablespace out of backup mode
+- alter database end backup;
+- alter tablespace <tablespace_name> end backup;
+**** Archive the current online redo log, and the maximum sequence number of the online redo logs
+this command initiate a redo log and put unarchive online redo into archive
+- alter system archive log current;
+- select thread#, max(sequence#) from v$log group by thread# order by thread#;
+**** back up the control files
+- alter database backup controlfile to '<backup file path/controlbk.ctl>' reuse;
+**** back up any archive redo logs generated during the backup
+- cp <archive redo logs generated during backup> <backup directory>
+*** Understanding Split Block Issue
+[[./pic/hotBackupSplitBlockIssue.png]]
+[[./pic/oracleNormalWriteChangeVectorToRedo.png]]
+[[./pic/entireBlocksWrittentoRedoLogs.png]]
+[[./pic/restoreAndRecoveryOfASplitBlock.png]]
+*** Understanding the Need for Redo Generated During Backup
+[[./pic/recoveryApplied.png]]
+*** Understanding that the Data Files are Updated
+data files are still updating during hot backup.
+** Performing a Complete Recovery of Archivelog Mode Database
+
+** Performing a Incomplete Recovery of Archivelog Mode Databaset
+
+
+

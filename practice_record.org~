@@ -1,0 +1,6 @@
+* installation
+* start the database
+** instance initialization
+- you can't use start unless you have already have a database
+- if you don't have a database, you must specify `nomount` in `startup` command
+** database installation
