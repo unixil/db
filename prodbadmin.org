@@ -640,4 +640,231 @@ data files are still updating during hot backup.
 ** Performing a Incomplete Recovery of Archivelog Mode Databaset
 
 
+* CONGIFURING RMAN
+** Understanding RMAN
+First we need to know what the architecture of RMAN looks like:
+[[./pic/RMAN structure.png]]
+*** Vocabulary
+**** Target Database
+**** RMAN client
+**** Oracle server Process
+**** Channels
+**** PL/SQL Packages
+**** Memory Buffer
+**** Auxiliary database
+**** Backup/Back up
+**** Backup set
+**** Backup piece file
+**** Image Copy
+**** Recovery Catalog
+**** Media Manager
+**** FRA
+**** Snapshot control file
+**** Full back up
+**** Incremental 0 Back up
+**** Incremental 1 Back up
+**** Incremental updated backup
+**** Block change Tracking
+*** logical group
 
+** Starting RMAN
+First, you should understand the concepts previous mentioned, then you can continue.
+$rman target /
+
+The simplest way to run rman is to use oracle user.
+
+You CAN NOT run rman in sqlplus because rman is not a function in sqlplus environment
+
+*** backup in archivelog mode
+- rman /
+- backup database;
+*** recover database;
+- shutdown immediate;
+- startup mount;
+- restore database;
+*** continue fully recover database
+- recover database;
+- alter database open;
+
+*** decision point
+**** Running backup remotely or locally
+**** specifying the backup user
+**** using online or offline backups
+- online
+the database need to be in archivelog mode
+where to place archive redo logs, how to format them, how often to backup them, how long to retain them before deletion
+- offline
+you need to shutdown database in immediately, normal, tansactional mode. and you need to mount the database because RMAN needs the databse to be mounted in order to read and write control files
+
+**** setting the archive redo log destination and file format
+- location
+  - default: $ORACLE_HOME/dbs
+  - FRA
+  - LOG_ARCHIVE_DEST_<N>: N is 1,2,3...
+- file format
+  - default file name for default location: %t_%s_%r.dbf
+  - default file name for FRA: unique name same as database like random code with .arc extention name
+  - recommand : specify a location with LOG_ARCHIVE_DEST_<N> and specify the name with log_archive_format=%t_%s_%r.arc
+**** configuring the rman backup location and file format
+- location
+  - default: $ORACLE_HOME/dbs
+  - FRA
+  - location specified with BACKUP...FORMAT command
+  - location specified with CONFIGURE CHANNEL...FORMAT command
+- file format
+  - default fileformat for default: OMF format(like a random code)
+  - file format for FRA: OMF format(random code with number prefix and with .bkp as extention name)
+  - BACKUP...FORMAT: eg.: BACKUP database FORMAT '<path/to/file/name/.bkp>'
+  - CONFIGURE CHANNEL...FORMAT:
+    - channel claim:
+configure device type disk parallelism <N>; <N> is 1,2,3...
+    - channel specified with destination
+configure channel 1 device type  disk format '<path/to/file/name/.bkp>';
+configure channel 2 device type  disk format '<path/to/file/name/.bkp>';
+configure channel 3 device type  disk format '<path/to/file/name/.bkp>';
+    - CAUTIONS:
+      - if channel claimed is greater than the channel specified then the extra opened channel will write to default location or FRA.
+      - if channel calimed is smaller than the channel specified then the channl specified will be ignored
+      - so, make the number of channel claimed equal channel specified
+    - unconfigure a channel
+configure channel 3 device type disk clear;
+**** setting the autobackup of the control file
+- configure controlfile autobackup on/off
+**** specifying the location of the autobackup of the control file
+- location
+  - default
+    - $ORACLE_HOME/dbs
+  - FRA
+  - location specified via command `configure controlfile autobackup format;`
+    - configure controlfile autobackup format for device type disk  to '<path/to/backup/file/location.bkp>'
+    - `configure controlfile autobackup format for device type disk clear;`
+**** backing up archive redo log
+- `backup database plus archivelog;`
+
+**** determining the location for the snapshot control file
+- default location is okay because it is not big. $ORACLE_HOME/dbs
+- check location: `show snapshot controlfile name;`
+- change location:`configure snapshot controlfile name to <path/to/control/file/path.ctl>`
+- clear location setting:`configure snapshot controlfile name clear`
+**** using recovery catalog
+- optional: recommand using it
+- see ch18
+**** using a media manager
+I don't think this is required by me because I will not use tape at all.
+**** setting the control_file_record_keep_time initialization parameter
+- default is 7 days;
+- set default between 0~365 is allowed, but 0 means the data can be overwritten any time
+- if using a recovery catalog, RMAN metadata will be storeed indefinitely.
+**** configuring RMAN's backup retention policy
+- recovery window
+- redundency
+- clearing the retention policy:
+  - complete disable RMAN retention policy: `configure retention policy to none;`
+  - reset RMAN retention policy to default: `configure retention policy clear;`
+- show retention policy:
+  - `show retention policy;`
+***** delete backup based on retention policy
+`RMAN>report obsolete;`
+`RMAN>delete obsolete;` or `delete noprompt obsolete;` the later is necessary since you might want to execute it in scripts
+***** retention policy has impact on archive logs and control files
+**** configuring the archive redo logs' deletion policy
+**** setting the degree of parallelism
+configure device type disk parallelism 4;
+configure channel 1 device  type disk format '<path/to/back/up/location.bk>'
+configure channel 2 device  type disk format '<path/to/back/up/location.bk>'
+configure channel 3 device  type disk format '<path/to/back/up/location.bk>'
+configure channel 4 device  type disk format '<path/to/back/up/location.bk>'
+- clear the parallelism: `configure device type disk clear;`
+- clear one channel: `configure channel 4 device type disk clear`
+**** using backup sets or image copy
+- backup has 2 options: needs to understand more, how to read block
+  - Backup sets
+  - Image copy
+**** using incremental backups
+you may run a level 0 backup a week and run a level 1 backup everyday
+**** using incremental updated backups
+efficient way to make image backup
+**** using block change tracking
+only if you using incremental backups, you can be more efficient
+if you are managing a large database, you will like it.
+**** configuring binary compression
+**** configuring encrytion
+**** configuring miscellanous settings
+**** configuring information output
+
+** RMAN Architectural Decisions
+** Segueing from Decision to Action
+** Summary
+** 
+
+* RMAN BACKUP
+** PREPARING TO RUN RMAN BACKUP COMMAND
+- set the data format: export NLS_DATA_FORMAT='dd-mon=yyyy hh24:mi:ss'
+- unset the data format: export NLS_DATA_FORMAT=''
+- RMAN> set echo on;
+- run `show all` to check parameters
+  - RMAN> show all;
+** RUNNING BACKUPS
+*** Backing up the Entire Database
+- backup incremental level=0 database plus archivelog;
+- configure controlfile autobackup on;
+*** Backup sets vs image copy
+- backup as backupset database
+- backup as copy database
+*** Backup tablespace
+- backup tablespace <tablespace_name>;
+*** Backup datafile
+- backup datafile '</path/to/datafile.dbf>';
+- backup datafile filenumber;
+*** Backup the control file
+- configure controlfile autobackup on;
+- backup current controlfile;
+*** Backup the spfile
+- backup spfile;
+*** Backup the archive log
+- backup archivelog all;
+- backup archivelog delete input;
+*** exclude 
+- configure exclude tablespace <tablespace_name>;
+- backup database without the tablespace in exlude list: backup database;
+- backup all the database include the ones in exclude tablespace list: backup database noexclude;
+*** backup datafiles not backed up
+- if you need to make sure you have all the datafiles backed up: backup database not backed up;
+
+*** Making Incrementally Updating Backups
+this is a tricky thing, you need to run the following command to understand what's going on:
+- recover copy of database with tag 'inupdate';
+  backup incremental level 1 for recover of copy with tag 'incupdate' database;
+
+now I will explain it in my words, the first command names a tag name, you can specify any tag name you want, it will be used consistently for the set of backups. the first command is to merge the incremental backup file with the already exist backup file and the second command will generate a new incremental backup file for next time use.
+
+the first time you run the command group, the first command will have nothing to do, and the second command will back up the database as a original copy
+the second time you run the command group, the first command will do nothing too and the second command will make a incremental backup for later use
+the third time you run the command group, the first command will merge the incremental backup file with the previous generated backup file and the second command will generate a new incremental backup
+
+** TAKING BACKUP OF PLUGGABLE DATABASES
+** CREATING INCREMENTAL BACKUPS
+
+
+** CHECKING FOR CORRUPTION IN DATAFILES AND BACKUPS
+** USING A RECOVERY CATALOG
+** LOGGING RMAN OUTPUT
+** RMAN REPORTING
+** SUMMARY
+
+* RMAN RECOVERY
+** DETERMING IF MEDIA RECOVERY IS REQUIRED
+** DETERMING WHAT TO RESTORE
+** USING RMAN TO START/STOP ORACLE
+** COMPLETE RECOVERY
+*** RESTORING AND RECOVERY DATAFILES WHILE DATABASE IS OPEN
+*** RESTORING AND RECOVERY DATAFILES WHILE DATABASE IS NOT OPEN
+*** RESTORING AND RECOVERY ALL DATAFILE
+*** RESTORING AND RECOVERY ROOT CONTAINER DATAFILES
+** RESTORING ARCHIVE REDO LOG FILES
+** RESTORING A CONTROL FILE
+** RESTORING THE SPFILE
+** INCOMPLETE RECOVERY
+** FLASHING BACK A TABLE
+** FLASHING BACK A DATABASE
+** RESTORING AND RECOVER TO A DIFFERENT SERVER
