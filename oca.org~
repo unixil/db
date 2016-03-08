@@ -1,16 +1,6 @@
-* architecture
-** server process
-** logical memory: oracle instance
-*** instance
-**** memory structure
-**** background processes
-***** user and server processes
-usually one server process have only one user process, but some oracle connection configuration allow one server process can have multiple user processes.
-****** user process
-user process exists in local machine or in middle-tier application and initiate a connection between user to the instance. Once the connection is established, the user established a session in the instance.
-****** server process
-after established a session, each user starts a server process on the host to operate the database. The server are allowed to interact with the instance, but not the user process directly.
-******* PGA(program global area)
-a memory structure connection with a server process.
-[[./pic/user_server_process_session.png]]
-** physical file structures: database
+Debugger entered--Lisp error: (void-variable diagnosability)
+  eval(diagnosability nil)
+  eval-last-sexp-1(nil)
+  eval-last-sexp(nil)
+  call-interactively(eval-last-sexp nil nil)
+  command-execute(eval-last-sexp)

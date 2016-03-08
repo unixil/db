@@ -1,3 +1,5 @@
+#+TAGS: @question @important
+
 * architecture
 ** server process
 ** logical memory: oracle instance
@@ -13,4 +15,56 @@ after established a session, each user starts a server process on the host to op
 ******* PGA(program global area)
 a memory structure connection with a server process.
 [[./pic/user_server_process_session.png]]
+- SQL Work Area
+- Private SQL Area
+***** Oracle Background Process
+****** Required Process 
+
+| Database Writer   | DBWn | 
+|                   | BWnn | 
+| Checkpoint        | CKPT | 
+| Log Writer        | LGWR | 
+| Process monitor   | PMON | 
+| System monitor    | SMON | 
+| Listener Register | LREG | 
+| Recover           | RECO | 
+| Memory Monitor    | MMON | 
+| MMON(LIGHT)       | MMOL | 
+| virtual time keep | VKTM | 
+| diagnosability    | DIAG | 
+| diagnosability    | DIA0 | 
+****** DBWN/BWnn						   :question:
+DBWn is not a process that alter table(that is what I think of it, need to be confirmed)
+this process write dirty buffer to file, more process may improve efficency of writing 
+DB01-DB09, DBWa-DBWz, BW36-BW99
+not good to have more DBWN process than processor number. 
+****** CKPT
+checkpoint affects the time of recovering the database. if redo log switch happens, checkpoint needs to update all files header, because there are too many files to be updated, DBWn will only update the control file not the data file header.
+******* SCN(system change number)
+when a change to the database begins, the system generate a SCN
+******* checkpoint
+checkpoint is when the DBWn writes all the dirty buffer to file
+******* checkpoint process
+when checkpoint occurs, checkpoint process updates all the control file and data file header to record the checkpoint.
+
+****** LGWR
+
+****** PMON
+****** SMON
+
+**** The oracle instance
+An oracle instance is composed of SGA(shared global area) and oracle background process, the server process interact with oracle instance through SGA
+***** SGA
+[[./pic/SGA.png]]
+****** Database Buffer Cache 
+- dirty buffers: buffer contain data needs to be written to file
+- free buffers: buffer doesn't contain any data
+- pinned buffers: buffers being used or retained for future use
+****** Redo Log buffer
+****** Shared Pool
+****** Large Pool
+****** Java Pool
+****** Streams Pool
+
+
 ** physical file structures: database
