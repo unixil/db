@@ -1,0 +1,4 @@
+* user account
+- create user with appropriate group priviledge
+- create proper .bashrc for each user
+- install ureka

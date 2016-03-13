@@ -48,10 +48,16 @@ checkpoint is when the DBWn writes all the dirty buffer to file
 when checkpoint occurs, checkpoint process updates all the control file and data file header to record the checkpoint.
 
 ****** LGWR
-
+Log writer writes when the following condition occures:
+- 3 seconds since the last LGWR write
+- when a user commits a transaction
+- when the redo log buffer is full
+- when the redo log buffer contains 1MB data worth of writing
+- whenever the database checkpoints occure
 ****** PMON
+clean up the failed process and free the resources used by the failed resources; also the PMON checks some optional process and restart them if they stopped.
 ****** SMON
-
+System monitor performs instance or crash recover when database startup by using online redo log files and also responsible for cleaning temporary files
 **** The oracle instance
 An oracle instance is composed of SGA(shared global area) and oracle background process, the server process interact with oracle instance through SGA
 ***** SGA
@@ -65,6 +71,44 @@ An oracle instance is composed of SGA(shared global area) and oracle background 
 ****** Large Pool
 ****** Java Pool
 ****** Streams Pool
-
+**** oracle storage structure
+ 
 
 ** physical file structures: database
+
+* installation, start and shutdown a database
+** working with oracle database metadata
+*** data dictionary views
+**** CDB_
+**** DBA_
+- DBA_tables
+- DBA_users
+- DBA_views
+- DBA_columns
+- DBA_tablespaces
+- DBA_datafiles
+**** ALL_
+**** USER_
+*** dynamic performance views
+fixed views and generated automatically
+** Managing initial parameter files: pfile or spfile
+*** pfile
+modified with OS text editor
+*** spfile
+modified with alter system set parameter_name=value
+** Starting UP and Shutting Down an Oracle Instance
+*** Starting up database
+- startup nomount
+  - create database
+  - create database control file
+- startup mount
+  - renaming datafiles
+  - enabling/disabling archive redo logs
+  - enabling/disabling archiving logging
+  - recovering database
+- startup open(default if no parameter given in startup command)
+- startup force
+  - can be used for restart
+- startup restrict
+- startup upgrade/downgrade
+- 
