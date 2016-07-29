@@ -1,0 +1,7 @@
+//check sga
+show sga;
+select * from v$sgainfo
+// show background process
+select min(name ||":"||description) from v$bgprocess
+group by substr(name, 1,3)
+order by 1

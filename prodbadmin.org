@@ -255,6 +255,7 @@ container database.
 #+NAME: Fig2-7
 [[./pic/oracle database architecture.png]]
 
+
 * TABLESPACES AND DATA FILES
 Tablespace is not just a space of tables, it is a logical container that
 allows you to manage groups of data files, the physical files on disks
@@ -313,3 +314,556 @@ and database file
 If you set these parameters before the database is set, the database
 will use these parameters for redo log, data files and control files.
 
+
+* DATA PUMP
+** DATA PUMP ARCHITECTURE
+- process
+  - master process: ora_dwNN_<SID>
+  - work process:
+  - status table created: SYS_<OPERATION>_<JOB_MODE>_NN
+    - operation: export | import
+    - job_mode: full|schema|table|tablespace|transportable
+      - job table dropped when job terminated
+      - job table retained if job terminated abnormally and restore when job restarted.
+- dp directory
+  - default directory defined in directory object named DATA_PUMP_DIR
+- LOG DIRECTORY
+  - default: $ORACLE_HOME/rdbms/log
+#+CAPTION: export architecture
+#+NAME: figure-13.1
+[[./pic/exp_architecture.png]]
+#+CAPTION: import architecture
+#+NAME: figure-13.2
+[[./pic/imp_architecture.png]]
+** get started
+- do NOT use default directory for dp_directory
+  - it will make $ORACLE_HOME directory very large
+*** process
+**** manually
+- create default dp_directory
+- grant authorization to user
+- run expdp
+  - if dumpfile already exists then oracle will throw an error.
+**** use parameter file
+- parameter file: exp.par
+- run expdp exp.par
+
+*** mode
+**** Exporting and Importing the whole database
+- priviledge: DBA or DATAPUMP_EXP_FULL_DATABASE role granted
+- priviledge: DBA or DATAPUMP_IMP_FULL_DATABASE role granted
+- parameter: full=Y
+***** export CAUTIONS
+- SYS scheme are never exported by datapump
+- index are not exported but DDL that contains the SQL required to recreate index are exported
+
+***** import CAUTIONS
+- import will try to create tablespace and directory or dfatafiles, if any has exists then import will fail.
+- if any user has already, import will fail to recreate the user, it will move on to the next task
+- import will make sys and system user has the same password with the original database, so you'd better to change the password of SYS and SYSTEM account to distinguish the new database from the original one
+- not only SYS and SYSTEM user, other user will have the same password with the original ones, so maybe it's better to change the password
+- after each table is created, index table will be created
+- table will be recreated if the same table already exist and contain data, you can specify the method to deal with the problem that the object already exists.
+**** scheme level
+- this is the default level
+- you can import scheme from dmp file that obtained from full export
+**** table level
+- tell impdp or expdp which table you want to operates
+- you can import table from dmp file that obtained from full or schema export
+**** teblespace level
+- specifiy the tablespace name while expdp or impdp
+***** tablespace CAUTION
+- it does NOT try to recreate tablespace themselves.
+*** Transferring DATA
+- network
+- copying data files
+- external tables
+**** network method
+**** copying data files method
+- create corresponding user on dest database
+create user &&username identified by &&user_pwd;
+grant connect,resource to &&user;
+alter user &&user default tablespace &&tablespace_name;
+- create database linke to remote source database and connect to the source database with a dba user
+create database link &&linkname
+connect to &&sourcename identified by &&username
+- CAUTIONS
+the network link created here is very important
+using 'xx:1522/xxxx';
+- create a log directory in dest database
+create or replace directory &&directory_name as '&&path/to/log'
+- import database
+*** Features for Manipulating Stroage
+**** Exporting Tablespace Metadata
+- sometimes you need to build an environment without data, you can use the metadata to build the environment
+  - e.g.:expdp mv_maint/foo directory=dp_dir dumpfile=inv.dmp full=y include=tablespace
+  - then you can import the DDL data into sql file, so you can modify the DDL file according to your needs or just execute it
+    - e.g.:impdp mv_maint/foo directory=dp_dir dumpfile=inv.dmp sqlfile=tbsp.sql
+**** Specifying Different Data File Paths and Names
+- use REMAP_DATAFILE parameter
+  - remap_datafile="'<source_file_path_and_name>':'<dest_file_path_and_name>'"
+**** Importing into a Tablespace Different from the Original
+- keyword: remap_schema, remap_tablespace
+  - remap_schema
+    - usage:remap_schema=<source_schema_name>:<dest_schema_name>
+  - remap_tablespace
+    - usage: remap=<source_tablespace_name>:<dest_tablespace_name>
+**** Change the Size of Data Files
+- keyword
+  - transform
+    - usage: transform=pctspace:<number of percentage>
+**** Change Segment and Storage Attributs
+- keyword: TRANSFORM
+*** Filtering Data and Objects
+- keyword: QUERY, SAMPLE, CONTENT, EXCLUDE, INCLUDE
+**** Specifying a Query
+- keyword: QUERY
+  - usage: QUERY=[schema.][table_name:] query_clause
+**** Exporting a Percentage of the Data
+- keyword: SAMPLE
+  - usage: [[schema_name.]table_name:]sample_percent
+  - e.g.:expde mv_maint/foo directory=dp_dir tables=inv sample=10 dumpfile=inv.dmp
+  - e.g.:expdp mv_maint/foo directory=dp_dir tables=inv,reg sample=reg:30 dumpfile=inv.dmp
+- CAUTIONS
+The SAMPLE parameter is only valid for exports
+**** Excluding Objects from the Export File
+- keyword: EXCLUDE
+  - usage: EXCLUDE = object_type[:name_clause][,...]
+  - you can NOT exclude a include object, for example, you can't exclude schema when export in schema mode
+***** Excluding Statistics
+- keyword: EXCLUDE=STATISTICS
+**** Including Only Specific Objects in an Export File
+- keyword: INCLUDE
+  - e.g.: INCLUDE=procedure,function
+  - e.g.: INCLUDE=function:\"=\'IS_DATE\'\"
+**** Exporting Table, Index, Constraint, and Trigger DDL
+- e.g:expdp mv_maint/foo directory=dp_dir dumpfile=ddl.dmp content=metadata_only full=y include=table
+**** Excluding Objects from Import
+- e.g.:exclude=trigger:"like 'B%'"
+  - ??: why there is no backslash for single quote symbol
+**** Including Objects from Import
+- e.g.:include=table:"like 'A%'"
+*** Common Data Pump Tasks
+**** Estimating the Size of Export Jobs
+- keyword: estimate_only
+  - usage: estimate_only=y
+**** Listing the Contents of Dump Files
+**** Cloning a User
+**** Creating a Consistent Export
+**** Importing When Objects Already Exist
+**** Renaming a Table
+**** Remapping Data
+**** Suppressing a Log File
+**** Using Parallelism
+**** Specifying Additional Dump File
+**** Reusing Output File Names
+**** Creating a Daily DDL File
+**** Compressing Output
+**** Changing Table Compression Characteristics on Import
+**** Encrypt Data
+**** Exporting Views As Tables
+**** Disabling Logging of Redo on Import
+*** Interactive Command Mode
+**** Entering Interactive Command Mode
+***** Ctrl+C
+***** ATTACH
+- determine the job name
+  - select owner, operation,job_name,state from dba_datapump_jobs
+- attach the job you want to attach
+  - if you are the job owner: expdp mv_maint/foo attach=<job_name>
+  - if you are not the owner: expdp system/foobar attach=<job_owner>.<job_name>
+**** Stopping and Restarting a Job
+sometimes you want to stop a job temporarily and solve some problems and then continue the job
+- attach a job
+  - e.g.: impdp mv_maint/foo attach=sys_import_table_01
+- stop a job
+  - e.g.: stop_job
+  - e.g.: stop_job=immediate
+- start a job
+  - start_job
+**** Terminating a Data Pump Job
+- attach to the job in interactive mode
+- run kill_job command
+*** Monitoring Data Pump Jobs
+**** Data Pump Log File
+**** Data Dictionary Views
+**** Database Alert Log
+**** Status Table
+**** Interactive Command Mode Status
+**** OS Utilities
+*** Data Pump Legacy Mode
+*** Summary
+
+
+* USER MANAGED BACKUP AND RECOVERY
+- type
+  - cold backup: offline backup: database offline while making backup
+  - hot backup: online backup: database online while making backup
+- keys:
+  - which files are backup
+  - how they are using when back up
+** Implementing a Cold-backup Strategy for Nonarchivelog Mode Database
+- steps:
+  - determine where to copy the backup files and how much space is required
+  - Identify the locations and names of the database files to copy
+  - shutdown the database with the IMMEDIATE, TRANSCTIONAL or NORMAL clause
+  - copy the files to the backup location
+  - restart the database
+- STEP 1:
+select sum(sum_bytes)/1024/1024 m_bytes
+from(
+select sum(bytes) sum_bytes from v$datafile
+union
+select sum(bytes) sum_bytes from v$tempfile
+union
+select (sum(bytes) * members) sum_bytes from v$log
+group by members
+);
+
+compare the query results with 
+
+`df -h`
+
+- STEP 2:
+select name from v$datafile
+union
+select name from v$controlfile
+union
+select name from v$tempfile
+union
+select member from v$logfile;
+
+- STEP 3: Shut Down the Database
+shutdown immediate;
+
+- STEP 4: Create Backup Copies of the Files
+cp <database file path in step2> <backup path>
+
+- STEP 5: Restart Your Database
+startup;
+
+*** Restore a cold backup in Nonarchivelog Mode with Online Redo Logs
+- steps:
+  - Shutdown the Instance
+  - Copy the File from the Backup
+  - Start Up the database
+**** STEP1: Shutdown the Instance
+shutdown abort;
+**** STEP2: Copy the File from the Backup
+cp <backup path> <database file path>
+**** STEP3: Start Up the database
+startup;
+*** Restore a cold backup in Nonarchivelog Mode without Online Redo Logs
+- steps:
+  - Shutdown the Instance
+  - Copy the File from the Backup
+  - Start Up the database in mount mode
+  - Open the Database with OPEN RESETLOGS clause
+**** Step1: Shutdown the Instance
+- shutdown abort;
+**** Step2: Copy the Files from the Backup
+- cp <database file path> <dest path>
+**** Step3: Start Up the database in mount mode
+- startup mount;
+**** Step4: Open the Database with OPEN RESETLOGS clause
+- alter database open resetlogs;
+if you see ORA-01139: run the following command:
+- recover database until cancel;
+
+** Implementing a Cold-backup Strategy for Archivelog Mode Database
+- you don't need to backup tempfile 
+- you do NOT backup current redo log file
+** Difference between Cold-Backup a Nonarchivelog Mode and an Archivelog Mode Database
+- purpose:
+the purpose for cold backup for a archivelog is to make a full recovery for the current database, so you will NOT backup the current online redo log, because you don't want to rewrite the current online redo logs with a old version of online redo log, which makes you never able to recover the database
+- content:
+do NOT back up the current redo log file in archive mode database backup procedure
+** Implementing Hot Backup Strategy
+best practice: Do a hot backup and then use the backup file to restore and recover the database
+*** Making a Hot Backup
+- steps:
+  - Ensure that the database is in a archivelog mode
+  - Determine where to copy the backup file
+  - Identify which files need to be backed up
+  - Note the Maximum sequence number of online redo logs
+  - alter the database/tablespace into backup mode
+  - copy the datafile with an OS utility to the location determined in step 2
+  - alter the database/tablespace out of backup mode
+  - Archive the current online redo log, and the maximum sequence number of the online redo logs
+  - back up the control files
+  - back up any archive redo logs generated during the backup
+
+**** Ensure that the database is in a archivelog mode
+- archive log list;
+if the database is not in archivelog mode, you should change it into archive mode by shutting down the database first and then startup in mount mode but not open the database, then you change the database into archivelog mode and then alter the database open
+- shutdown normal;
+- startup mount;
+- alter database archivelog;
+- alter database open;
+**** Determine where to copy the backup file
+- select sum(bytes) from <dba_data_files>;
+**** Identify which files need to be backed up
+- select name from v$datafile;
+you may want to know the relationship between tablespace name and database file
+- select tablespace, filename from <dba_data_files> order by 1,2;
+**** Note the Maximum sequence number of online redo logs
+- select thread#, max(sequence#) from v$log group by thread# order by thread#;
+**** alter the database/tablespace into backup mode
+- alter database begin backup;
+or if you want to backup tablespace
+- alter tablespace <tablespace_name> begin backup;
+**** copy the datafile with an OS utility to the location determined in step 2
+cp <database file path> <dest_file_path>
+**** alter the database/tablespace out of backup mode
+- alter database end backup;
+- alter tablespace <tablespace_name> end backup;
+**** Archive the current online redo log, and the maximum sequence number of the online redo logs
+this command initiate a redo log and put unarchive online redo into archive
+- alter system archive log current;
+- select thread#, max(sequence#) from v$log group by thread# order by thread#;
+**** back up the control files
+- alter database backup controlfile to '<backup file path/controlbk.ctl>' reuse;
+**** back up any archive redo logs generated during the backup
+- cp <archive redo logs generated during backup> <backup directory>
+*** Understanding Split Block Issue
+[[./pic/hotBackupSplitBlockIssue.png]]
+[[./pic/oracleNormalWriteChangeVectorToRedo.png]]
+[[./pic/entireBlocksWrittentoRedoLogs.png]]
+[[./pic/restoreAndRecoveryOfASplitBlock.png]]
+*** Understanding the Need for Redo Generated During Backup
+[[./pic/recoveryApplied.png]]
+*** Understanding that the Data Files are Updated
+data files are still updating during hot backup.
+** Performing a Complete Recovery of Archivelog Mode Database
+
+** Performing a Incomplete Recovery of Archivelog Mode Databaset
+
+
+* CONGIFURING RMAN
+** Understanding RMAN
+First we need to know what the architecture of RMAN looks like:
+[[./pic/RMAN structure.png]]
+*** Vocabulary
+**** Target Database
+**** RMAN client
+**** Oracle server Process
+**** Channels
+**** PL/SQL Packages
+**** Memory Buffer
+**** Auxiliary database
+**** Backup/Back up
+**** Backup set
+**** Backup piece file
+**** Image Copy
+**** Recovery Catalog
+**** Media Manager
+**** FRA
+**** Snapshot control file
+**** Full back up
+**** Incremental 0 Back up
+**** Incremental 1 Back up
+**** Incremental updated backup
+**** Block change Tracking
+*** logical group
+
+** Starting RMAN
+First, you should understand the concepts previous mentioned, then you can continue.
+$rman target /
+
+The simplest way to run rman is to use oracle user.
+
+You CAN NOT run rman in sqlplus because rman is not a function in sqlplus environment
+
+*** backup in archivelog mode
+- rman /
+- backup database;
+*** recover database;
+- shutdown immediate;
+- startup mount;
+- restore database;
+*** continue fully recover database
+- recover database;
+- alter database open;
+
+*** decision point
+**** Running backup remotely or locally
+**** specifying the backup user
+**** using online or offline backups
+- online
+the database need to be in archivelog mode
+where to place archive redo logs, how to format them, how often to backup them, how long to retain them before deletion
+- offline
+you need to shutdown database in immediately, normal, tansactional mode. and you need to mount the database because RMAN needs the databse to be mounted in order to read and write control files
+
+**** setting the archive redo log destination and file format
+- location
+  - default: $ORACLE_HOME/dbs
+  - FRA
+  - LOG_ARCHIVE_DEST_<N>: N is 1,2,3...
+- file format
+  - default file name for default location: %t_%s_%r.dbf
+  - default file name for FRA: unique name same as database like random code with .arc extention name
+  - recommand : specify a location with LOG_ARCHIVE_DEST_<N> and specify the name with log_archive_format=%t_%s_%r.arc
+**** configuring the rman backup location and file format
+- location
+  - default: $ORACLE_HOME/dbs
+  - FRA
+  - location specified with BACKUP...FORMAT command
+  - location specified with CONFIGURE CHANNEL...FORMAT command
+- file format
+  - default fileformat for default: OMF format(like a random code)
+  - file format for FRA: OMF format(random code with number prefix and with .bkp as extention name)
+  - BACKUP...FORMAT: eg.: BACKUP database FORMAT '<path/to/file/name/.bkp>'
+  - CONFIGURE CHANNEL...FORMAT:
+    - channel claim:
+configure device type disk parallelism <N>; <N> is 1,2,3...
+    - channel specified with destination
+configure channel 1 device type  disk format '<path/to/file/name/.bkp>';
+configure channel 2 device type  disk format '<path/to/file/name/.bkp>';
+configure channel 3 device type  disk format '<path/to/file/name/.bkp>';
+    - CAUTIONS:
+      - if channel claimed is greater than the channel specified then the extra opened channel will write to default location or FRA.
+      - if channel calimed is smaller than the channel specified then the channl specified will be ignored
+      - so, make the number of channel claimed equal channel specified
+    - unconfigure a channel
+configure channel 3 device type disk clear;
+**** setting the autobackup of the control file
+- configure controlfile autobackup on/off
+**** specifying the location of the autobackup of the control file
+- location
+  - default
+    - $ORACLE_HOME/dbs
+  - FRA
+  - location specified via command `configure controlfile autobackup format;`
+    - configure controlfile autobackup format for device type disk  to '<path/to/backup/file/location.bkp>'
+    - `configure controlfile autobackup format for device type disk clear;`
+**** backing up archive redo log
+- `backup database plus archivelog;`
+
+**** determining the location for the snapshot control file
+- default location is okay because it is not big. $ORACLE_HOME/dbs
+- check location: `show snapshot controlfile name;`
+- change location:`configure snapshot controlfile name to <path/to/control/file/path.ctl>`
+- clear location setting:`configure snapshot controlfile name clear`
+**** using recovery catalog
+- optional: recommand using it
+- see ch18
+**** using a media manager
+I don't think this is required by me because I will not use tape at all.
+**** setting the control_file_record_keep_time initialization parameter
+- default is 7 days;
+- set default between 0~365 is allowed, but 0 means the data can be overwritten any time
+- if using a recovery catalog, RMAN metadata will be storeed indefinitely.
+**** configuring RMAN's backup retention policy
+- recovery window
+- redundency
+- clearing the retention policy:
+  - complete disable RMAN retention policy: `configure retention policy to none;`
+  - reset RMAN retention policy to default: `configure retention policy clear;`
+- show retention policy:
+  - `show retention policy;`
+***** delete backup based on retention policy
+`RMAN>report obsolete;`
+`RMAN>delete obsolete;` or `delete noprompt obsolete;` the later is necessary since you might want to execute it in scripts
+***** retention policy has impact on archive logs and control files
+**** configuring the archive redo logs' deletion policy
+**** setting the degree of parallelism
+configure device type disk parallelism 4;
+configure channel 1 device  type disk format '<path/to/back/up/location.bk>'
+configure channel 2 device  type disk format '<path/to/back/up/location.bk>'
+configure channel 3 device  type disk format '<path/to/back/up/location.bk>'
+configure channel 4 device  type disk format '<path/to/back/up/location.bk>'
+- clear the parallelism: `configure device type disk clear;`
+- clear one channel: `configure channel 4 device type disk clear`
+**** using backup sets or image copy
+- backup has 2 options: needs to understand more, how to read block
+  - Backup sets
+  - Image copy
+**** using incremental backups
+you may run a level 0 backup a week and run a level 1 backup everyday
+**** using incremental updated backups
+efficient way to make image backup
+**** using block change tracking
+only if you using incremental backups, you can be more efficient
+if you are managing a large database, you will like it.
+**** configuring binary compression
+**** configuring encrytion
+**** configuring miscellanous settings
+**** configuring information output
+
+** RMAN Architectural Decisions
+** Segueing from Decision to Action
+** Summary
+** 
+
+* RMAN BACKUP
+** PREPARING TO RUN RMAN BACKUP COMMAND
+- set the data format: export NLS_DATA_FORMAT='dd-mon=yyyy hh24:mi:ss'
+- unset the data format: export NLS_DATA_FORMAT=''
+- RMAN> set echo on;
+- run `show all` to check parameters
+  - RMAN> show all;
+** RUNNING BACKUPS
+*** Backing up the Entire Database
+- backup incremental level=0 database plus archivelog;
+- configure controlfile autobackup on;
+*** Backup sets vs image copy
+- backup as backupset database
+- backup as copy database
+*** Backup tablespace
+- backup tablespace <tablespace_name>;
+*** Backup datafile
+- backup datafile '</path/to/datafile.dbf>';
+- backup datafile filenumber;
+*** Backup the control file
+- configure controlfile autobackup on;
+- backup current controlfile;
+*** Backup the spfile
+- backup spfile;
+*** Backup the archive log
+- backup archivelog all;
+- backup archivelog delete input;
+*** exclude 
+- configure exclude tablespace <tablespace_name>;
+- backup database without the tablespace in exlude list: backup database;
+- backup all the database include the ones in exclude tablespace list: backup database noexclude;
+*** backup datafiles not backed up
+- if you need to make sure you have all the datafiles backed up: backup database not backed up;
+
+*** Making Incrementally Updating Backups
+this is a tricky thing, you need to run the following command to understand what's going on:
+- recover copy of database with tag 'inupdate';
+  backup incremental level 1 for recover of copy with tag 'incupdate' database;
+
+now I will explain it in my words, the first command names a tag name, you can specify any tag name you want, it will be used consistently for the set of backups. the first command is to merge the incremental backup file with the already exist backup file and the second command will generate a new incremental backup file for next time use.
+
+the first time you run the command group, the first command will have nothing to do, and the second command will back up the database as a original copy
+the second time you run the command group, the first command will do nothing too and the second command will make a incremental backup for later use
+the third time you run the command group, the first command will merge the incremental backup file with the previous generated backup file and the second command will generate a new incremental backup
+
+** TAKING BACKUP OF PLUGGABLE DATABASES
+** CREATING INCREMENTAL BACKUPS
+
+
+** CHECKING FOR CORRUPTION IN DATAFILES AND BACKUPS
+** USING A RECOVERY CATALOG
+** LOGGING RMAN OUTPUT
+** RMAN REPORTING
+** SUMMARY
+
+* RMAN RECOVERY
+** DETERMING IF MEDIA RECOVERY IS REQUIRED
+** DETERMING WHAT TO RESTORE
+** USING RMAN TO START/STOP ORACLE
+** COMPLETE RECOVERY
+*** RESTORING AND RECOVERY DATAFILES WHILE DATABASE IS OPEN
+*** RESTORING AND RECOVERY DATAFILES WHILE DATABASE IS NOT OPEN
+*** RESTORING AND RECOVERY ALL DATAFILE
+*** RESTORING AND RECOVERY ROOT CONTAINER DATAFILES
+** RESTORING ARCHIVE REDO LOG FILES
+** RESTORING A CONTROL FILE
+** RESTORING THE SPFILE
+** INCOMPLETE RECOVERY
+** FLASHING BACK A TABLE
+** FLASHING BACK A DATABASE
+** RESTORING AND RECOVER TO A DIFFERENT SERVER

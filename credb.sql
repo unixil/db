@@ -9,7 +9,7 @@ DATAFILE
 '/u01/dbfile/o12c/system01.dbf'
 SIZE 500M REUSE
 EXTENT MANAGEMENT LOCAL
-UNDO TABLESPACE undotbs1 DATAFILE
+UNDO TABLESPACE UNDOTBS1 DATAFILE
 '/u01/dbfile/o12c/undotbs01.dbf'
 SIZE 800M
 SYSAUX DATAFILE
@@ -24,16 +24,15 @@ SIZE 20M
 LOGFILE GROUP 1
 ('/u01/oraredo/o12c/redo01a.rdo',
  '/u01/oraredo/o12c/redo01b.rdo'
- ) SIZE 50M
- GROUP 2
- ('/u01/oraredo/o12c/redo02a.rdo',
-  '/u01/oraredo/o12c/redo02b.rdo'
-  ) SIZE 50M
-  GROUP 3
-  (
-  '/u01/oraredo/o12c/redo03a.rdo',
+) SIZE 50M,
+GROUP 2
+('/u01/oraredo/o12c/redo02a.rdo',
+ '/u01/oraredo/o12c/redo02b.rdo'
+) SIZE 50M,
+GROUP 3
+( '/u01/oraredo/o12c/redo03a.rdo',
   '/u01/oraredo/o12c/redo03b.rdo'
-  ) SIZE 50M
-USER sys	IDENTIFIED BY foo
-USER system	IDENTIFIED BY foo;
+) SIZE 50M
+USER sys	IDENTIFIED BY waffle
+USER system	IDENTIFIED BY waffle;
 

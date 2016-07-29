@@ -1,0 +1,114 @@
+#+TAGS: @question @important
+
+* architecture
+** server process
+** logical memory: oracle instance
+*** instance
+**** memory structure
+**** background processes
+***** user and server processes
+usually one server process have only one user process, but some oracle connection configuration allow one server process can have multiple user processes.
+****** user process
+user process exists in local machine or in middle-tier application and initiate a connection between user to the instance. Once the connection is established, the user established a session in the instance.
+****** server process
+after established a session, each user starts a server process on the host to operate the database. The server are allowed to interact with the instance, but not the user process directly.
+******* PGA(program global area)
+a memory structure connection with a server process.
+[[./pic/user_server_process_session.png]]
+- SQL Work Area
+- Private SQL Area
+***** Oracle Background Process
+****** Required Process 
+
+| Database Writer   | DBWn | 
+|                   | BWnn | 
+| Checkpoint        | CKPT | 
+| Log Writer        | LGWR | 
+| Process monitor   | PMON | 
+| System monitor    | SMON | 
+| Listener Register | LREG | 
+| Recover           | RECO | 
+| Memory Monitor    | MMON | 
+| MMON(LIGHT)       | MMOL | 
+| virtual time keep | VKTM | 
+| diagnosability    | DIAG | 
+| diagnosability    | DIA0 | 
+****** DBWN/BWnn						   :question:
+DBWn is not a process that alter table(that is what I think of it, need to be confirmed)
+this process write dirty buffer to file, more process may improve efficency of writing 
+DB01-DB09, DBWa-DBWz, BW36-BW99
+not good to have more DBWN process than processor number. 
+****** CKPT
+checkpoint affects the time of recovering the database. if redo log switch happens, checkpoint needs to update all files header, because there are too many files to be updated, DBWn will only update the control file not the data file header.
+******* SCN(system change number)
+when a change to the database begins, the system generate a SCN
+******* checkpoint
+checkpoint is when the DBWn writes all the dirty buffer to file
+******* checkpoint process
+when checkpoint occurs, checkpoint process updates all the control file and data file header to record the checkpoint.
+
+****** LGWR
+Log writer writes when the following condition occures:
+- 3 seconds since the last LGWR write
+- when a user commits a transaction
+- when the redo log buffer is full
+- when the redo log buffer contains 1MB data worth of writing
+- whenever the database checkpoints occure
+****** PMON
+clean up the failed process and free the resources used by the failed resources; also the PMON checks some optional process and restart them if they stopped.
+****** SMON
+System monitor performs instance or crash recover when database startup by using online redo log files and also responsible for cleaning temporary files
+**** The oracle instance
+An oracle instance is composed of SGA(shared global area) and oracle background process, the server process interact with oracle instance through SGA
+***** SGA
+[[./pic/SGA.png]]
+****** Database Buffer Cache 
+- dirty buffers: buffer contain data needs to be written to file
+- free buffers: buffer doesn't contain any data
+- pinned buffers: buffers being used or retained for future use
+****** Redo Log buffer
+****** Shared Pool
+****** Large Pool
+****** Java Pool
+****** Streams Pool
+**** oracle storage structure
+ 
+
+** physical file structures: database
+
+* installation, start and shutdown a database
+** working with oracle database metadata
+*** data dictionary views
+**** CDB_
+**** DBA_
+- DBA_tables
+- DBA_users
+- DBA_views
+- DBA_columns
+- DBA_tablespaces
+- DBA_datafiles
+**** ALL_
+**** USER_
+*** dynamic performance views
+fixed views and generated automatically
+** Managing initial parameter files: pfile or spfile
+*** pfile
+modified with OS text editor
+*** spfile
+modified with alter system set parameter_name=value
+** Starting UP and Shutting Down an Oracle Instance
+*** Starting up database
+- startup nomount
+  - create database
+  - create database control file
+- startup mount
+  - renaming datafiles
+  - enabling/disabling archive redo logs
+  - enabling/disabling archiving logging
+  - recovering database
+- startup open(default if no parameter given in startup command)
+- startup force
+  - can be used for restart
+- startup restrict
+- startup upgrade/downgrade
+- 
