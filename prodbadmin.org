@@ -301,4 +301,15 @@ extent management local
 uniform size 128k
 
 segment space management auto;
+*** drop table space
+before dropping a table space, you'd better get it offline, and check
+if anyone complain about an application went wrong, make sure no one
+need the table space and then drop the table space and the contents
+and database file
+*** Using ORACLE Management Files
+- DB_CREATE_FILE_DEST
+- DB_CREATE_ONLINE_LOG_DEST_N
+- DB_RECOVERY_FILE_DEST
+If you set these parameters before the database is set, the database
+will use these parameters for redo log, data files and control files.
 
