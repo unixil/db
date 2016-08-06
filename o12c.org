@@ -1,0 +1,929 @@
+* 
+** task of dba
+  - evaluate the hardware
+    - how many disks are available
+    - how many memory are available
+  - install oracle
+    - you should know how to install oracle remotely
+  - plan the database
+    - logical storage structure
+      - what datafile will each tablespace contain
+      - how much volume will each tablespace will take
+      - the datafile will be stroed on which physical disk 
+    - overall database design
+    - backup strategy
+  - create and open database
+  - backup database
+    - after you create the database, create a backup and make schedule for back up database
+  - enroll system users
+  - implement database design
+  - backup fully functional database
+  - download and install patches
+  - roll out to additional hosts
+    - cloning an oracle home
+      - tool: cloud control
+    - cloning an oracle database
+      - tool: cloud control
+** submitting sql
+*** connecting to database with sql
+    Oracle dtabase has 2 components
+    - instance
+    - data file on disks
+    SQL connect to instance and each instance has a single instance ID, which is known as SID(system ID)
+    \color{red}{how to distinguish different instance on a system, is one system can only run one instance at a time?}
+
+**** before create database
+     - modify .bashrc or .bash_profile
+       - export SID
+       - export oracle_base
+       - export oracle_home
+
+     - create relevent folder
+       - create audit_file_dest folder
+       - create db_recovery_file_dest folder
+**** create password file
+***** 
+      A user can be in the password file as long as it has at least one of the following priviledges: SYSDBA, SYSOPER, SYSBACKUP, SYSDG, or SYSKM. 
+      - Problem Might Occur
+        The problem you may have is to set the REMOTE_LOGIN_PASSWORDFILE=EXCLUSIVE, if you use pfile(txt format), you should add the the line in the txt format, if you use spfile(database configuration), you need to use 
+        #+BEGIN_SRC SQL
+          alter system set REMOTE_LOGIN_PASSWORDFILE=EXCLUSIVE scope=PFILE;
+        #+END_SRC
+        If you want to expand the maximum number of users that a password 
+***** Delete A Password File
+      If you want to delete a password file, you can delete the password file you created and set the REMOTE_LOGIN_PASSWORDFILE=NONE.
+***** Expanding the Password File or Replace the Password File
+      You can't expand the password file unless you replace it with a new one.
+      If you decide to replace the password file, you should follow the following steps:
+        1. Identified the users by 
+           #+BEGIN_SRC sql
+             selectn * from v$PWFILE_USERS;
+           #+END_SRC sql
+        2. Delete the existing password file;
+        3. Create a new password file with enough entries for users;
+        4. Add users to password file
+** Creating a Database
+   If you use ASM, you must startup you ASM instance, and configure the disk groups before the following steps 
+*** Specify an Instance Identifier
+    In ~/.bashrc file
+      #+BEGIN_SRC sql
+        export SID=<SID_NAME>
+      #+END_SRC
+*** Ensure the Required Varibles are set
+      #+BEGIN_SRC sql
+        export ORACLE_HOME=<ORACLE_HOME>
+        export ORACLE_BASE=<ORACLE_BASE>
+        export PATH=<PATH>
+      #+END_SRC
+*** Choose a Database Administrator Authentication Method
+    - Password File
+    - System Authentication
+*** Create the Initialization Parameter File
+    $ORACLE_HOME/dbs/init<ORACLE_SID>.ora
+*** Connect an Instance
+    #+BEGIN_SRC sql
+      sqlplus /nolog
+      connect as sysdba
+    #+END_SRC
+*** Create a Server Parameter File
+    #+BEGIN_SRC sql
+      create spfile from file
+    #+END_SRC
+*** Start the Instance
+    #+BEGIN_SRC sql
+      startup nomount
+    #+END_SRC
+*** Issue the Create Database Statement
+    Before you issue create database statement, you need to create the relative folder used in the create database clause.
+*** Create Additional Tablespaces
+*** Run Scripts to Build Dictionary Views
+    Run as sysdba
+    #+BEGIN_SRC sql
+        @?/rdbms/admin/catalog.sql
+        @?/rdbms/admin/catproc.sql
+    #+END_SRC
+    Run as system
+    #+BEGIN_SRC sql
+        @?/sqlplus/admin/pupbld.sql
+    #+END_SRC
+    where @ meas run as sql script and ? means the <ORACLE_HOME>
+*** Run Scripts to Install Additional Options
+*** Backup Database
+*** Enable Automatic Instance Startup
+** Specifing Create Database Statement Clauses
+   Usually you will create several tablespaces in the create database clause: system, sysaux, undo, temp, user, redo.
+*** Proctecting Database
+    You need the following clause to specified the password of the user:
+    #+BEGIN_SRC sql
+      user sys identified by <PASSWORD=change_on_install>
+      user system identified by <PASSWORD=manager>
+    #+END_SRC
+**** Create Locally Managed System Tablespace
+     Specify the EXTENT MANAGEMENT LOCAL clause in the Create Database clause is recommended, if this parameter is not specified, you will get a dictionary management System tablespace which is depreciated.
+     !!!! If you use a local management file but you don't use a oracle manage file, be sure that the following 2 conditions are met:
+      - you specified default TEMPORARY TABLESPACE
+      - you specified UNDO TABLESPACE
+***** Oracle Manage File
+      To enable Oracle Managed Files, you need to specify a folder  (DB_CREATE_FILE_DEST = the default location for the data files and DB_CREATE_ONLINE_LOG_DEST_n = the default location for the log files (and the control files if the CONTROL_FILES parameter is not specified)) or diskgroup(if you use ASM) in the initialization file, 
+      - DB_CREATE_FILE_DEST;
+      - DB_CREATE_ONLINE_LOG_DEST_n;
+      - DB_RECOVERY_FILE_DEST; 
+      The Oracle Management File system can not help in dealing with Raw Disks, since it is aimed to work with system file system.
+      what files will be generated automatically will depend on the create database clause
+      - Tablespaces and their data files
+      - Temporary tablespaces and their temp files
+      - Control files
+      - Online redo logs
+      - Archived redo log files
+      - Flashback logs
+      - Block change tracking files
+      - RMAN backups
+      The following 3 type of file will be created even you don't specified them in create database clauses:
+      - Tablespaces
+      - Online redo log files
+      - Control files
+**** Create Sysaux Tablespace
+     Sysaux tablespace serves as a auxiliary tablespace for system tablespace. If you include datafile clause in create database statement, you have to include sysaux datafile clause into the create database statement, of course you may ignore this requirement if you use oracle manage file.
+**** Undo Tablespace
+     If you specified undo tablespace in your create database clause, you will get it as you specified, or you can set undo tablespace auto in your initialization file or if you don't set it in either place, you can still get it if you use oracle manage file.
+**** Default Tablespace
+     You can specify the default tablespace or the system tablespace will be the default tablespace.
+**** Temporary Tablespace
+     Oracle will create a temporary tablespace, but you can specify it if you add temporary tablespace in the create database clause
+*** Create Data File for Database
+*** Create Control File for the database
+*** Create Online Redo Log and Specify Archive Log Mode
+*** Create System Tablespace
+*** Create Sysaux Tablespace
+*** Create the data dictionary
+*** Set Character Set
+*** Set Database Timezone
+*** Mount and Open Database for Use
+** Specifing Initialization Parameters
+    - About Initialization Parameters and Initialization Parameter Files
+      Only one parameter DB_NAME has to be specified, all other parameters have default names.
+      The SPFile have higher priority than PFile, but you can overwrite this by specifing an arguments in startup command.
+      Format of PFile is <parameter>=<value>
+    - Determining the Global Database Name
+      DB_NAME=<DB_NAME>
+      DB_DOMAIN=<DB_DOMAIN>
+      DB_DOMAIN specified the 
+      If you change your <DB_NAME>, you have to restart the database and regenerate the control file by 
+      #+BEGIN_SRC sql
+        ALTER DATABASE BACKUP CONTROLFILE TO TRACE
+      #+END_SRC
+    - Specifying a Fast Recovery Area
+      - what is a Fast Recovery Area:
+        A place where oracle can store and manage files related with backup and recovery.
+      - What is its form
+        For non ASM, a fast recovery area should be a distinct directory from database directory. For ASM, the fast recovery must be a disk group or shared  directory on NFS.
+      - How to Specify It
+        - DB_RECOVERY_FILE_DEST
+        - DB_RECOVERY_FILE_DEST_SIZE
+          For ASM, the above two parameters must have the same value acrossing all the RAC instances.
+      - Notition
+        You can't have LOG_ARCHIVE_DEST and LOG_ARCHIVE_DUPLEX_DEST with the two fast recovery directory parameters at the same time.
+    - Specifying Control Files
+      - what is control file?
+        A binary which records the structure of the database.
+      - what it contains
+        - The database name
+        - Names and locations of associated datafiles and redo log files
+        - The timestamp of the database creation
+        - The current log sequence number
+        - Checkpoint information
+      - Some Notes
+        The control files are generated when you issue create database statement.
+        The system will create control file at the same directory with the initialization file with default file name if you don't specify the control file location and name in the initialization file iff you don't specify it.
+    - Specifying Database Block Sizes
+      - how to get system block size
+      #+BEGIN_SRC bash
+        sudo dumpe2fs /dev/sda1 |grep 'Block size'
+      #+END_SRC
+      On my Cent OS 7 system, the ext4 file system has Block size equal to 4096 which 4K.
+    - Specifying the Maximum Number of Processes
+      set a larger number than the expected user number.
+    - Specifying the DDL Lock Timeout
+    - Specifying the Method of Undo Space Management
+      - What a Undo Space is
+        It is a space that store the transaction actions, primarily before they are commited.
+      - Default mode
+        The default value for undo mode is auto which stores the information in undo tablespace.
+      - Default Undo Tablespace
+        If no undo tablespace is set in initialization file, the undo will use system tablespace as tablespace which is the mode you should avoid.
+    - About The COMPATIBLE Initialization Parameter
+      compatiable parameter is used to set the default value.
+    - Setting the License Parameter
+** Managing Initialization Parameter Using a Server Parameter File
+- What is a Server Parameter File
+  A Server Parameter File(SPFILE) is a file that store the database parameter
+  - Migrating to a Server Parameter File
+    If you want to change from a PFILE to a SPFILE, 
+    first make a copy of the PFILE on the local machine; 
+    then:
+    #+BEGIN_SRC sql
+       create spfile from pfile;
+    #+END_SRC
+    finally:
+    restart or start the instance.
+  - Creating a Server Parameter File
+  - The SPFILE Initialization Parameter
+    The default is set by the system since only the database needs to be specified, and all other parameter has its own default value.
+  - Changing Initialization Parameter Value
+    #+BEGIN_SRC sql
+    alter system set <parameter>=<value>;
+    #+END_SRC
+  - Cleaning Initialization Parameter Value
+    #+BEGIN_SRC sql
+    alter system reset;
+    #+END_SRC 
+  - Exporting the Server Parameter File
+    #+BEGIN_SRC sql
+      create pfile=<pfile location> from spfile=<spfile location>;
+      create pfile=<pfile location> from memory;
+    #+END_SRC
+  - Backing up the Server Parameter File
+    - Exporting the SPFILE as described above
+    - RMAN
+  - Recovering a Damaging or Lost Server Parameter File
+    #+BEGIN_SRC sql
+      create pfile=<pfile location> from memory;
+    #+END_SRC
+    When a instance startup, it will write the spfile to alert.log, you can copy the contents and paste them into a new pfile, and use the pfile to generate the spfile.
+  - Viewing Parameter Settings
+    #+BEGIN_SRC sql
+      show parameters;
+      show spparameters;
+      select * from v$parameter;
+      select * from v$parameter2;
+      select * from v$system_parameter;
+      select * from v$system_parameter2;
+      select * from v$spparameter;
+    #+END_SRC
+*** Managing Application Workloads with Database Services
+**** Datatbase services
+***** About Database Services
+      - What a Database Service is
+Database services (services) are logical abstractions for managing workloads in Oracle Database. Services divide workloads into mutually disjoint groupings. Each service represents a workload with common attributes, service-level thresholds, and priorities. The grouping is based on attributes of work that might include the application function to be used, the priority of execution for the application function, the job class to be managed, or the data range used in the application function or job class. For example, the Oracle E-Business suite defines a service for each responsibility, such as general ledger, accounts receivable, order entry, and so on. Each database service has a unique name.
+      - How to Use it
+        Specify the service name in the listner.ora file, if no service name is specified, the connection will use the default service.
+      - Features
+        - In RAC
+          Database service can span over multiple instances.
+          In RAC, the database service can also be managed by cloud control, DBCA, or Server Control Utility(SRVCTL)
+      - Classification
+        - Function service
+        - data-dependent service
+***** Database Services and Performance
+***** Oracle Database Features that Use Database Services
+      AWR can monitor the service performance and Database Resource Manager can map the service to cunsumer group.
+      Edition can be added to Database service, which can contain 2 or more objects in the database, the service with edition label connected by use the edition of the service as initial edition.
+***** Creating Database Services
+      - if you are running single instance database
+        svrctl add service -db <db_name>  -service <service_name>
+      - if you are running single instance database not being managed by Oracle Restart, do one of the following 
+        - append the desired <service_name> to the SERVICE_NAMES parameter
+        - call DBMS_SERVICE.CREATE_SERVICE
+***** Database Service Data Dictionary Views
+**** Global Database Services
+***** Common services accross multiple database, which might be duplication of databases.
+**** Database Service Data Dictionary Views
+*** Considerations After Creating Databases
+**** Some Security Considerations
+     - Transparent Encryption
+       Encrypt the data file before importing the data into the database is stored in the database. Users who want to see the data directly from operating system  can not get the sensative information.
+     - Oracle Wallet
+       Store the password on client side. When store the password on client side using oracle wallets, users can connect to the database using:
+       #+BEGIN_SRC sql
+         connect /@<database_alias>
+       #+END_SRC
+**** Enabling Transparent Data Encryption
+**** Create a Secure External Password Store
+**** Using Transaction Guard and Application Continuity
+**** Installing the Oracle Database Sampling Schemas
+** CloneDB
+*** what is it?
+    Efficient Backup only use space to store file modified, so it is used to back up before modification made to database.
+*** Prerequisite
+    NAS Storage are needed, and the backup file should be on one NAS Volume.
+
+** Startup and Shutdown of Database
+*** Initialization File
+    - Non ASM database
+      Normally the initialization file is the default initialization file.
+    - ASM database
+      Normally the initialization file is not the default initialization file, it would be stored in ASM disk group.
+    - IMPORTANT:
+      You can start up a database from a remote client by running
+        #+BEGIN_SRC sql
+            startup pfile=<pfile path>
+        #+END_SRC
+      But you can't do it by spfile since spfile must be located on local machine.
+** Oracle Restart
+** About Oracle Restart
+   You'd better install Oracle Restart with Oracle Grid or you will have to install all components needed to make Oracle Restart work.
+- What is it
+  Used for hardware or software problem that cause components stop. Oracle Restart will restart the failure part.
+    - Restriction
+      Only used in single instance database, in RAC, restart function is provided by clusterware.
+*** Data Guard
+**** Role(PHYSICAL, PHYSICAL_STANDBY, LOGICAL_STANDBY, SNAPSHOT_STANDBY)
+    When Database Restart is related with Data Guard, the role of database and service must be specified and only the two role matches, the service will start with the database
+   To a Data Guard, database has attribution of "Role"(PHYSICAL, PHYSICAL_STANDBY, LOGICAL_STANDBY, SNAPSHOT_STANDBY)
+*** HA of standalone database
+**** FAN
+**** ONS
+** Configuring Oracle Restart
+*** Prepare to Run Oracle Restart
+    Make sure you run srvctl in the correct directory and log on the host server with correct username
+      +------------------------------+----------------------------------------+
+|components beging configured  | Oracle Home from which you start srvtcl|
+      +------------------------------+----------------------------------------+
+      |Database, Database services   | Database Home                          |
+      +------------------------------+----------------------------------------+
+      |Oracle ASM instance,disk group| Oracle Grid Home                       |
+      |listner, ONS                  |                                        |
+      +------------------------------+----------------------------------------+
+    If you want to change the Oracle Restart configuration, you need to log in as the oracle installer who created the corresponding home described above.
+    If you don't need to change the Oracle Restart configuration, you can log in with any account.
+*** Obtaining Help from Srvtcl
+    #+BEGIN_SRC bash
+    Srvctl help
+    #+END_SRC
+*** Adding Components to the Oracle Restart Configuration
+    Only in the following situation you need to manually add the components to Oracle Restart
+         - You install Oracle Restart after you creating the database;
+         - You create an additional database using create database SQL statement;
+         - You create an service with DBMS_SERVICE.CREATE_SERVICE package procedure
+  *** ONS and FAN
+      To enable ONS to publish the FAN, you need to create the ONS network to connect the Oracle Restart server with the oracle clients together.
+      You will do the following:
+          - Run the svrctl in the correct directory;
+          - Add database to Oracle Restart;
+          - Add ONS to configuration;
+            #+BEGIN_SRC bash
+              svrctl add ons
+            #+END_SRC
+          - Enable ONS;
+            #+BEGIN_SRC bash
+              svrctl enable ons
+            #+END_SRC
+          - Start ONS;
+            #+BEGIN_SRC bash
+              svrctl start ons
+            #+END_SRC
+          - Add service to Oracle Restart Configuration;
+          - Enable each client for fast connection failover.
+** Managing Process
+*** 2 Kind of Process
+    - Dedicated Process: only serve one user process
+      Always enabled by database;
+    - Share Server Process: serve multiple user processes
+      Must manually specified in initialization parameters
+*** Dedicated Process
+**** 2 Situitions to Use Dedicated Process
+     - submit a batch job
+     - use RMAN
+     To connect to database in dedicated process, specify the SERVER=DEDICATED clause in the connect descriptor
+*** Shared Process
+    The user processes must connect through Oracle Net Services, even if they are on the same system as Oracle Database Instance.
+    - Session Multiplexing: funnel multiple client session into a network connection to the destined server
+** Manage Memory
+*** Automatic Memory Management
+*** Enable Automatic Memeory Management require a restart of the database
+** Archive Log
+*** Transmission Mode
+**** Normal Transmission Mode
+another drive of the db server
+**** Standby Transmission Mode
+standby database
+** Managing Destination failure
+*** archive destination(directory not file)
+**** one archive log
+log_archive_dest
+**** multiple archive log
+log_archive_dest_n
+**** 2 archive log
+log_archive_dest
+log_archive_duplex_dest
+*** archive name format
+- %s
+- %t
+- %r
+...
+*** Specify the minimum number of successful destination
+all LOG_ARCHIVE_DUPLEX_DEST can be optional if log_archive_min_succeed_dest=1 and optional or log_archive_min_succeed_dest=2
+*** Reopen
+*** views
+v$database;
+v$archived_log;
+v$archive_dest;
+v$archive_processes;
+v$backup_redolog;
+v$log;
+v$log_history; 
+** Tablespace
+*** segment
+*** extent
+*** block
+*** pct
+**** pctfree
+**** pctused
+*** tablespace structure
+**** common and varible header
+**** Table directory
+**** Row directory
+**** free space
+**** row data
+*** one table multiple tablespace
+**** LOB
+**** partitioned table
+** Big Table
+*** Temporary table space for big table
+**** create bigtable temporary tablespace
+** Temporary
+*** temporary tablespace
+can not be dropped
+
+*** dba_temp_free_space
+*** default temporary group
+*** tablespace group 
+create temporary tablespace ... tablespace group <group name>
+*** In-memory column store
+temporary space for 
+
+*** set specified block_size
+**** set the blocksize in create tablespace statement using blocksize clause
+**** set db_cache_size and db_nK_cache_size
+- db_2K_cache_size
+- db_4K_cache_size
+- db_8K_cache_size
+- db_16K_cache_size
+**** set the db_block_size in initialization file
+*** control the writing of redo records
+- specify the NOLOGGING in the create tablespace statement
+- if you specify the tablespace as FORCE LOGGING mode, than the object created in the tablespace will be in logging mode and overwrite the default log mode.
+- If you tranport the database with FORCE LOGGING mode to another database, the FORCE LOGGING mode will not be preserved.
+*** Taking tablespace offline
+**** the following tablespace can not be taken offline
+- system
+- temporary
+- undo
+**** Bring the tablespace online
+If you don't take the tablespace offline cleanly, you should make a media recovery for the tablespace.
+- SQL statement
+Alter tablespace <tablespace name> online;
+*** make the tablespace read only
+**** the following tablespace can not be set to read only
+- system
+- temporary
+- active undo
+the tablespace must not be in an online backup
+#+BEGIN_SRC sql
+alter tablespace <tablespace name> read only;
+#+END_SRC
+The SCN of each transaction is stored in the following view:
+v$transaction
+The transaction can stop the tablespace from being changed to read only, you will need to find the session that stop the operation.
+First, you can use the v$sqlarea and v$session to find the transaction sql being operated now
+Then, according to the session address you should be able to find start scn number in the v$transaction view
+finally, you can find the user of the transaction sql using v$session and v$transaction views.
+*** Altering a Locally Managed Datafile
+**** Shrink
+#+BEGIN_SRC sql
+alter tablespace <tablespace name> shrink space <clause>;
+#+END_SRC
+**** Rename
+#+BEGIN_SRC sql
+alter tablespace <tablespace name> rename to <tablespace name>;
+#+END_SRC 
+*** drop tablespace
+**** drop tablespace but keep the datafile
+#+BEGIN_SRC sql
+drop tablespace <tablespace name> including;
+#+END_SRC
+**** drop tablespace with datafile
+#+BEGIN_SRC sql
+drop tablespace <tablespace name> including contents and datafiles;
+#+END_SRC
+If you don't delete the datafile now, you will need to delete it using system command like rm in linux.
+**** sysaux tablespace
+V$SYSAUX_OCCUPANTS
+***** Moving Occupants out of SYSAUX
+***** Controlling the Size of SYSAUX
+*** Diagnosing And Repairing The Local Managed Tablespace Problem
+A lot of procedures are provided to fix problem of tablespace
+**** Bitmap index and B-tree index
+Bit map index is efficient and compressed, it is usually only a fraction of size of the original data and can improve the response time signaficantly. The disadvantage is that it is easier to destroy and recreate than to maintain and easily get stucked. It will take a lot of time to build a bitmap index so the concurrency problem is also very obvious.
+*** Migrating SYSTEM tablespace to local managed tablespace
+- command: DBMS_SPACE_ADMIN.TABLESPACE_MIGRATE_TO_LOCAL
+Before migrating the tablespace, the following conditions must be met:
+- the database has a default TEMPORARY tablespace that is not SYSTEM TABLESPACE
+- there are no rollback segments in the dictionary-managed tablespace
+- There is at least one online rollback segment in a locally managed tablespace or if using automatic undo management, an undo tablespace is online.
+- All tablespace except undo tablespace are in read-only mode.
+- The SYSAUX tablespace is offline
+- The system is in restricted mode
+- There is a cold back up of the database.
+#+BEGIN_SRC sql
+execute DBMS_SPACE_ADMIN.TABLESPACE_MIGRATE_TO_LOCAL('SYSTEM');
+#+END_SRC
+**** Tablespace data dictionary views
+|-----------------------------------+------------------------------------------------|
+| View                              | Description                                    |
+|-----------------------------------+------------------------------------------------|
+| v$tablespace                      |                                                |
+|-----------------------------------+------------------------------------------------|
+| v$encrypted_tablespace            | name and algorithm of all encrypted tablespace |
+|-----------------------------------+------------------------------------------------|
+| dba_tablespaces, user_tablespaces | Description of all tablespace                  |
+|-----------------------------------+------------------------------------------------|
+| dba_tablespace_groups             |                                                |
+|-----------------------------------+------------------------------------------------|
+| dba_segments,user_segments        |                                                |
+|-----------------------------------+------------------------------------------------|
+| dba_extents, user_segments        |                                                |
+|-----------------------------------+------------------------------------------------|
+| dba_free_space, user_free_space   |                                                |
+|-----------------------------------+------------------------------------------------|
+| dba_temp_free_space               |                                                |
+|-----------------------------------+------------------------------------------------|
+| v$datafile                        |                                                |
+|-----------------------------------+------------------------------------------------|
+| v$tempfile                        |                                                |
+|-----------------------------------+------------------------------------------------|
+| dba_data_files                    |                                                |
+|-----------------------------------+------------------------------------------------|
+| dba_temp_files                    |                                                |
+|-----------------------------------+------------------------------------------------|
+| v$temp_extent_map                 |                                                |
+|-----------------------------------+------------------------------------------------|
+| v$temp_extent_pool                |                                                |
+|-----------------------------------+------------------------------------------------|
+| v$temp_space_header               |                                                |
+|-----------------------------------+------------------------------------------------|
+| dba_users                         |                                                |
+|-----------------------------------+------------------------------------------------|
+| dba_ts_quotas                     |                                                |
+|-----------------------------------+------------------------------------------------|
+| v$sort_segment                    |                                                |
+|-----------------------------------+------------------------------------------------|
+| v$tempseg_usage                   |                                                |
+|-----------------------------------+------------------------------------------------|
+
+** Managing Data Files And Temp Files
+*** Guidelines for managing data files
+**** data files
+must be created explicitly for tablespace;
+each data file has 2 associated number:
+- absolute number
+  - File# column in v$datafile or v$tempfile
+  - File_id column in dba_data_files or dba_temp_files
+- relative number
+The 2 numbers are used to specify the data file.
+- initialization maximum number of file#
+DB_FILES
+*** Creating data files and adding data files to tablespace
+**** Creating datafile
+- create tablespace
+- create temporary tablespace
+- alter tablespace <tablespace name> add datafile
+- alter tablespace <tablespace name> add datafile
+- create database
+- alter database <database name> create datafile
+**** Bring tablespace online offline
+- alter database datafile '<data file name>' online|offline
+- alter database datafile '<data file name>' online|offline for drop
+
+*** Changing data file size
+**** make datafile auto extent
+add `autoextend on` to the end of the following sql statement
+- create tablespace 
+- alter tablespace
+- create database
+- alter database
+**** manually resizing datafile size
+alter database datafile '<datafile name>' resize 100M;
+*** Altering data file availablity
+**** Reason why you need alter data file availablity
+- To make an offline backup of a datafile;
+- Rename or relocate a data file;
+- A data file is corrupt, you must make it offline to open the database;
+- The data file is taken offline automatically by database, you will have to mount it online manually later;
+
+*** Renaming and Relocating data files
+**** Rename or relocating datafile online
+- ALTER DATABASE MOVE DATAFILE '<datafile name>' TO '<datafile new name>'|KEEP|REUSE;
+The above statement can move the data file to another place or rename it to another name while the database is open and users are accessing the data file.
+**** Rename or relocating datafile offline
+- turn datafile offline
+- move or rename datafile using system command
+- using `alter database move datafile '<datafile name >' TO '<datafile new name>'` statement to change the database pointers
+- make a complete backup of the database
+- run command `alter datafile online`;
+*** Dropping data files
+- you can not drop the only data file in the tablespace, therefore you can not drop bigfile tablespace;
+- you can not drop system tablespace;
+- if datafile is locally managed and is offline, it can not be dropped;
+- if a datafile is not empty, it can not be dropped;
+- database must be open;
+*** Verifing data blocks and data files
+db_block_checksum
+*** Coping files using database server
+**** like a small OS system
+CREATE  DIRECTORY SOURCE_DIR AS '<directory name>';
+CREATE  DIRECTORY DEST_DIR AS '<directory name>';
+GRANT <privilege name> ON DBMS_TRANSFER TO <user name>;
+GRANT READ ON SOURCE_DIR TO <user name>;
+GRANT WRITE ON DEST_DIR TO <user name>;
+*** Mapping Files to Physical Device
+Mapping files to physical device can help you find the IO bottle neck, but now, LVM and raid are used frequently which prevent the file mapping to device. Oracle has its own solution to this problem.
+**** Overview of File Mapping Interface
+v$views
+FMON is a procedure to managing the mapping information. FMON needs a filemap.ora file but it doesn't need a mapping library. If there is NO mapping library, then only drop and restore operation can be executed.
+***** How the File Mapping Works
+****** Components of File Mapping Works
+******* FMON
+FMON is a process started by database whenever the FILE_MAPPING parameter is set to TRUE.
+******** Building mapping information
+- Files
+- File system extent
+- Elements
+- Subelements
+******** Refresh information when the following action are taken
+- Changes to data file
+- Addition or deletion of data files
+ Changes to storage configuration
+******** Saving Mapping Information in the data dictionary to maintain a view of 
+
+
+******* External Process(FMPUTL)
+******* Mapping Libraries
+***** Mapping Structure
+- Files
+- File system extent
+- Elements
+- Subelements
+****** Configuration ID
+- Persistent
+Consistent when the instance is restarted.
+- Non-persistent
+Regenerate when the instance is started.
+****** Using the Oracle File Mapping Interface
+******* Enabling File Mapping
+- Need a valid filemap.ora file under /opt/ORCLfmap/protl_64/etc directory for 64-bits system
+  FMON will need the filemap.ora file to start successfully.
+The following line should be in the filemap.ora file for each library
+#+BEGIN_SRC 
+lib=vendor_name:mapping_library_path
+#+END_SRC
+vendor_name should be Oracle for EMC Symmetric library
+mapping_library_path is the full path of the mapping library
+- turn on the file mapping function
+#+BEGIN_SRC sql
+alter system set File_Mapping=True;
+#+END_SRC
+- envoke the file mapping
+  - cold start
+    #+BEGIN_SRC sql
+    dbms_storage_map.map_all
+    #+END_SRC
+  - hot start
+    #+BEGIN_SRC sql
+    dbms_storage_map.map_all
+    #+END_SRC
+******* Using the DBMS_STORAGE_MAP Package
+******* Obtaining Information from the File Mapping Views
+v$map_library
+v$map_file
+v$map_file_extent
+v$map_element
+v$map_ext_element
+v$map_subelement
+v$map_comp_list
+v$map_file_to_stack
+*** Data Files Data Dictionary Views
+dba_data_files
+dba_extents
+user_extents
+dba_free_space
+user_free_space
+v$datafile
+v$datafile_header
+** Transporting Data
+*** About Transporting Data
+**** Purpose of Transporting Data
+***** Transporting Database
+Copy the data file to location and use dump to transfer the meta data.
+***** Transporting Tablespace and Table
+Transportable tablespaces to move a set of tablespace between databases.
+***** Tables Partitions and subpartitions
+Transportable tables to move a set of tablespace between databases.
+
+***** Summary
+Transporting Database is much faster than performing either export/import or unload/load of the same data because it only transfer metadata of the database objects of the new database.
+
+Transporting Tablespaces or tables only transfer data in user-defined tablespace
+
+Full transportable export/import tablespace or table will transfer metadata in user-define tablespaces and both metadata and data for objects contained within administrative tablespaces.
+
+**** Transporting Data: Senarios
+***** Scenarios for Full Transportable Export/import Scenarios
+****** Moving a Non-CDB into a CDB
+****** Moving a database into a new computer system
+****** Upgrading to a new Release of Oracle Databases
+***** Scenarios for Transportable Tablespaces and Transportable Tables
+**** Transporting Data Across Platforms
+***** Allow a database to migrate from one platform to another
+***** Provide an easier and more efficient means for contents provider to publish structured data
+***** simplify the distribution of data from a data warehouse to a data mart
+***** Enable sharing the readonly tablespace between database that can access the same storage device
+***** Big Endian and Little Endian
+****** Solutions
+- GET_FILE or PUT_FILE procedure in DBMS_FILE_TRANSFER
+- CONVERT command in RMAN package
+**** General Limitions on Transporting Data
+***** Character sets should be the same between source and target databases or the source character sets is a strict subset of the target database character sets.
+**** Compatitablity Consideration for Transporting Data
+*** Transporting Databases
+**** Introduction to Full Transportable Export/Import
+***** Limitations on Full Transportable Export/Import
+- You can't transport an encrypted tablespace to a platform with different endianness
+- when transporting a database using internet, tables with long or long raw columns in administrative tablespaces(system and sysaux) are not supported
+- when transporting a database using dump files, user defined database objects in administrative tablespaces(system and sysaux) can be trasported.
+- when transporting a database using internet, auditing can not be enabled for tables in administrative tablespaces(system and sysaux) when audit trail files are stored in user-defined tablespaces
+- full transporting database can not transfer tables stored in both administrative tablespaces and user-defined tablespace.
+**** Transporting database using dump file
+***** steps
+1. place each user-defined tablespace in read-only mode and enable the following parameters:
+- transportable=always
+- full = y
+2. copy the dump file to target database
+3. copy the data file to target database
+- what is the difference between dump file and data file????
+if the endianness between source database platform and target database platform are different, use put_file and get_file procedure to transfer the data files or use the RMAN convert command to tranfer the data files.
+4. restore the read write mode on the source databse
+5. import the database in target database
+when import the 
+**** Transporting database using network
+you don't have to deal with dump file. The procedure will be processed by the database using network_link parameter.
+***** steps
+1. create a link between source database to the target database
+2. make the tablespace in source database readonly
+3. transport the database data files in user-defined tablespace to the target database
+4. import the data files in the target databases
+5. restore the database to read-write mode
+*** Transporting Tablespaces between Databases
+**** Introduction to Transportable tablespace
+- manually transport tablespace
+  using sqlplus and dump files
+- use oracle enterprise management cloud control
+**** Limitations on Transportable tablespace
+- can't transfer tablespace with table that has timestamp with timezone
+- transportable tablespace can not transfer encrypted tablespace
+- transportable tablespace can not transfer tablespaces with table with encrypted columns
+- administrative tablespace can not be included in transportable tablespace set
+**** Transporting tablespaces between databases
+***** steps
+1. pick a self-contained set of tablespaces
+2. set the source database to read-only mode
+3. transport the dump file to target database
+4. transport the tablespace set
+5. restore the source database to read/write mode
+6. import the tablespace set
+**** Transporting data: Senarios
+*** Transporting Tables, Partitions, or Subpartitions Between Databases
+**** Introduction to Transportable tables
+use the transportable tables feature to transfer a set of tables partitions or subpartitions.
+- use network
+- use dump file
+**** Limitations on Transportable tables
+- you can't transfer tables in encrypted tablespaces
+- you can't transfer tables with encrypted columns
+- you can't transfer tables to database with the same table name and the same scheme name
+**** Transporting Tables, Partitions, or Subpartitions Using an Export Dump File
+***** steps
+1. pick a set of tables, partitions or subpartitions
+2. place the selected tables, partitions, or subpartitions into read-only mode
+3. perform the data pump file
+4. transport the export dump file
+5. transport the data files for the tables, partitions, or subpartitions
+6. restore the selected tables, partitions, or subpartitions into read-write mode
+7. perform the import command in target database
+**** Transporting Tables, Partitions, or Subpartitions Over the the Network
+1. pick a set of tables, partitions or subpartitions
+2. place the selected tables, partitions, or subpartitions into read-only mode
+3. transport the data files for the tables, partitions, or subpartitions
+4. perform the import command in target database
+5. restore tablespaces to read/write mode
+*** Converting Data between Platforms
+**** Converting Data between Platforms Using the DBMS_FILE_TRANSFER PACKAGE
+
+**** Using RMAN
+*** Guidelines for Transferring Data Files
+#+BEGIN_SRC dot :file dot_success.png :cmdline -Kdot -Tpng
+  digraph {
+  // graph from left to right
+  rankdir=LR;
+  splines=true;
+  node [shape=box];
+ 
+  id [label="Install Graphviz"]
+  conf [label="Configure org-babel"]
+  dot [label="DOT in org-mode"]
+ 
+  id -> conf
+  conf -> dot
+  dot -> "Profit"
+  dot -> "Success" [style=dotted]
+  }
+#+END_SRC
+#+BEGIN_SRC dot :file dot_success.png :cmdline -Kdot -Tpng
+  digraph {
+  // graph from left to right
+  rankdir=LR;
+  splines=true;
+  node [shape=box];
+ 
+  id [label="Install Graphviz"]
+  conf [label="Configure org-babel"]
+  dot [label="DOT in org-mode"]
+ 
+  id -> conf
+  conf -> dot
+  dot -> "Profit"
+  dot -> "Success" [style=dotted]
+  }
+#+END_SRC
+
+#+RESULTS:
+[[file:dot_success.png]]
+
+** Managing Undo
+*** What is undo
+*** Introduction to automatic undo  management
+**** Overview of automatic management 
+With automatic undo management, the database manages undo segment in undo tablespace. An undo tablespace undotbs1 is automatically created when you create a database using dbca.
+
+If no undo tablesapce is found, the instance will start with undo contents written in system tablespace.
+
+You can specify which undo tablespace you want to use using undo_tablespace=<undo tablespace name>. The <undo tablespace name> can be referred to as a instance in an Oracle RAC environment.
+
+If the specified tablespace doesn't exist, the startup command failed.
+***** parameter
+- undo_management: auto or null for automatically management; manual for manual management.
+- undo_tablespace:
+*** setting the minimum undo retention period
+**** About the undo retention period
+When automatically management is enabled, there is always a current undo period. Within the period, the undo information is called unexpired, and out this period, the undo informantion is called expired. expired undo information will be overwritten.
+***** parameter
+undo_retention: the parameter is ignored for a fixed size undo tablespace\
+**** automatically tunning of undo tablespace
+oracle database automatically tune the tablespace according to how the undo tablespace is configured.
+***** undo tablespace set to autoextend
+the database automatically tunes the retention period a little longer than the longest running active query on the system. But in this situation, the undo tablespace is better to set to fixed size to enlarge the undo retention period.
+if the undo tablespace is fixed size and it is very small, then DML would fail to be excuted. Long running query would also failed for unsufficient undo data for read consistency.
+***** undo guarantee
+If undo guarantee is enable, the minimal size of undo retention is protected and will not be written until it is expired; if the undo guarantee is not enabled the minimal retention may be overwritten for lacking enough space.
+***** undo retention tuning
+undo retention tuning is based on 85% of tablespace size or on the tablespace alert threshold
+***** parameter
+v$undostat: table show undo tablespace information like tuned_undoretention etc.,
+***** Set the minimum undo retention
+To set the minimum undo retention
+- set undo_retention in initialization parameter file
+- alter system set undo_retention=<period value>;
+It take effects immediate, but it can only be honored when the tablespace is enough.
+*** sizing a fixed sized undo tablespace
+You can use oracle enterprise manager database express to query the optimal size of undo tablespace, for more information, you can check the "oracle 2day dba".
+The undo advisor is based on automatic workload repository(AWR), so if you want get the correct information, you need AWR work well. For newly created database, there is no enough, so use the auto extend option for undo tablespace until you get enough data.
+To use the undo advisor, consider the longest query you ever do in the database and the longest period you need to do a flashback.
+**** The undo advisor pl/sql interface
+you can activate the undo advisor by creating an undo advisor task through the advisor framework.
+The information can be found in dba_advisor_* views.
+*** managing undo tablespaces
+**** Creating an undo tablespace
+- create database clause to create undo tablespace at the creation of database
+- create undo tablespace clause to create undo tablespace, you can create multiple undo tablespace but only one will be active at one time.
+**** Altering an undo tablespace
+***** altering a data file
+***** renaming a data file
+***** bring a data file online or take it offline
+***** beginning or ending an open backup on a datafile
+***** Enabling or Disabling an undo retention guarantee
+**** Dropping an undo tablespace
+**** Switching undo tablespace\
+***** change undo tablespace to new one
+alter system set undo_tablespace=<undo tablespace name>
+***** unsign current undo tablespace
+alter system set undo_tablespace=''
+**** Enable user quote for undo space
+
+**** undo space data dictionary views
+*** migrating to automatic undo management
+**** Managing Temporary Undo
+***** About managing Temporary undo Tablespace
+when temporary undo tablespace is enabled, some temporary tablespace will allocate some segments to store temporary undo tablespace, the temporary undo segments 
+***** Enabling and Disabling undo Tablespace
+*** managing temporary undo
+*** undo space data dictionary views
